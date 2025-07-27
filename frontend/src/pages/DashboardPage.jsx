@@ -1,106 +1,100 @@
 // frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { getUsersTheses } from '../api/thesisApi'; // Import the new API function
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faFileAlt, faClock, faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
 
 const DashboardPage = () => {
-    const { user, loading, isAuthenticated } = useAuth();
-    const navigate = useNavigate();
     const [userTheses, setUserTheses] = useState([]);
-    const [thesesLoading, setThesesLoading] = useState(true);
-    const [thesesError, setThesesError] = useState(null);
+    const [isFetchingTheses, setIsFetchingTheses] = useState(true);
+    const [error, setError] = useState(null);
+    const { user, isAuthenticated, token, loading } = useAuth();
 
-    useEffect(() => {
-        // Redirect to login if not authenticated and not loading
-        if (!loading && !isAuthenticated) {
-            navigate('/login');
+    const fetchUserTheses = async () => {
+        setIsFetchingTheses(true);
+        try {
+            const response = await axios.get('http://localhost:5000/api/theses/me');
+            setUserTheses(response.data);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching user theses:', err);
+            setError('Failed to fetch your theses. Please try again later.');
+            setUserTheses([]); // Ensure userTheses is an empty array on error
+        } finally {
+            setIsFetchingTheses(false);
         }
-    }, [isAuthenticated, loading, navigate]);
+    };
 
-    // Effect to fetch the user's theses
     useEffect(() => {
-        if (isAuthenticated) {
-            const fetchUserTheses = async () => {
-                try {
-                    const data = await getUsersTheses();
-                    setUserTheses(data);
-                } catch (err) {
-                    setThesesError('Failed to fetch your theses. Please try again later.');
-                } finally {
-                    setThesesLoading(false);
-                }
-            };
+        // Only run this effect if authentication state has been determined and the user is authenticated
+        if (!loading && isAuthenticated) {
             fetchUserTheses();
         }
-    }, [isAuthenticated]);
 
-    if (loading || thesesLoading) {
+        // If not authenticated, ensure states are reset
+        if (!loading && !isAuthenticated) {
+            setUserTheses([]);
+            setIsFetchingTheses(false);
+        }
+    }, [isAuthenticated, loading]); // <-- THE DEPENDENCY ARRAY IS NOW CORRECT
+
+    if (loading || isFetchingTheses) {
         return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-                <p className="text-gray-600 text-lg">Loading...</p>
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+                <p className="text-secondary fs-5">Loading your theses...</p>
             </div>
         );
     }
 
-    if (thesesError) {
+    if (error) {
         return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-                <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl text-center">
-                    <p className="text-red-600 text-lg">{thesesError}</p>
-                </div>
+            <div className="container mt-5">
+                <div className="alert alert-danger text-center">{error}</div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center justify-center py-10 bg-gray-100">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-4xl text-center">
-                <h2 className="text-4xl font-extrabold text-blue-800 mb-6">User Dashboard</h2>
-                {isAuthenticated ? (
-                    <>
-                        <p className="text-lg text-gray-700 mb-4">
-                            Welcome, <span className="font-semibold text-blue-600">{user?.username || user?.email}</span>!
-                        </p>
-                        <p className="text-md text-gray-600">
-                            Your role: <span className="font-semibold text-blue-600">{user?.role}</span>
-                        </p>
-                        <div className="mt-8 p-4 bg-green-50 rounded-md border border-green-200">
-                            <h3 className="text-2xl font-semibold text-green-700 mb-3">My Submissions</h3>
-                            {userTheses.length > 0 ? (
-                                <div className="space-y-4">
-                                    {userTheses.map((thesis) => (
-                                        <div key={thesis._id} className="p-4 bg-white border border-gray-200 rounded-md shadow-sm text-left">
-                                            <h4 className="text-lg font-medium text-gray-800">{thesis.title}</h4>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                <span className="font-semibold">Status:</span> {thesis.status}
-                                            </p>
-                                            <p className="text-sm text-gray-500 mt-2 line-clamp-3">
-                                                {thesis.abstract}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-gray-600 text-center">You have not submitted any theses yet.</p>
-                            )}
-                        </div>
-                        {user?.role === 'admin' || user?.role === 'supervisor' ? (
-                            <div className="mt-8 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                                <h3 className="text-2xl font-semibold text-yellow-700 mb-3">Admin/Supervisor Actions</h3>
-                                <p className="text-gray-600">
-                                    (Placeholder for links to manage pending theses, user roles, or analytics.)
-                                </p>
-                                <button className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-md transition duration-200 ease-in-out">
-                                    View Pending Theses
-                                </button>
-                            </div>
-                        ) : null}
-                    </>
+        <div className="container mt-5">
+            <div className="card shadow-sm p-4">
+                <h2 className="card-title text-center mb-4">
+                    <FontAwesomeIcon icon={faUser} className="me-2 text-primary" />
+                    {user?.username}'s Dashboard
+                </h2>
+                {userTheses && userTheses.length === 0 ? (
+                    <div className="card-body text-center">
+                        <p className="text-muted">You have not submitted any theses yet.</p>
+                        <Link to="/upload" className="btn btn-primary mt-3">
+                            <FontAwesomeIcon icon={faFileAlt} className="me-2" />
+                            Upload Your First Thesis
+                        </Link>
+                    </div>
                 ) : (
-                    <p className="text-lg text-red-600">
-                        You need to be logged in to view your dashboard. Please <a href="/login" className="text-blue-600 hover:underline">Login</a> or <a href="/register" className="text-blue-600 hover:underline">Register</a>.
-                    </p>
+                    <div className="row g-4">
+                        {userTheses?.map((thesis) => (
+                            <div key={thesis._id} className="col-lg-6">
+                                <div className="card h-100 shadow-sm border-0">
+                                    <div className="card-body d-flex flex-column">
+                                        <Link to={`/thesis/${thesis._id}`} className="text-decoration-none">
+                                            <h5 className="card-title fw-bold text-primary mb-2">{thesis.title}</h5>
+                                        </Link>
+                                        <p className="card-text mb-1">
+                                            <span className="fw-semibold">Author:</span> {thesis.authorName}
+                                        </p>
+                                        <p className="card-text mb-1">
+                                            <span className="fw-semibold">Department:</span> {thesis.department}
+                                        </p>
+                                        <p className={`card-text fw-bold ${getStatusColor(thesis.status)} mt-auto`}>
+                                            {getStatusIcon(thesis.status)}
+                                            Status: {thesis.status.charAt(0).toUpperCase() + thesis.status.slice(1)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>
@@ -108,3 +102,30 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+// Helper functions for status icons and colors
+const getStatusIcon = (status) => {
+    switch (status) {
+        case 'pending':
+            return <FontAwesomeIcon icon={faClock} className="text-warning me-2" />;
+        case 'approved':
+            return <FontAwesomeIcon icon={faCheckCircle} className="text-success me-2" />;
+        case 'rejected':
+            return <FontAwesomeIcon icon={faTimesCircle} className="text-danger me-2" />;
+        default:
+            return <FontAwesomeIcon icon={faFileAlt} className="text-secondary me-2" />;
+    }
+};
+
+const getStatusColor = (status) => {
+    switch (status) {
+        case 'pending':
+            return 'text-warning';
+        case 'approved':
+            return 'text-success';
+        case 'rejected':
+            return 'text-danger';
+        default:
+            return 'text-secondary';
+    }
+};

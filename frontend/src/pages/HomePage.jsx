@@ -18,9 +18,11 @@ const HomePage = () => {
         const fetchTheses = async () => {
             try {
                 const data = await getPublicTheses();
-                setTheses(data);
+                setTheses(data || []); // Ensure data is an array or an empty array
             } catch (err) {
+                console.error('Error fetching public theses:', err);
                 setError('Failed to fetch theses. Please try again later.');
+                setTheses([]); // <-- ADDED: Reset theses to an empty array on error
             } finally {
                 setLoading(false);
             }
@@ -41,6 +43,14 @@ const HomePage = () => {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
                 <p className="text-secondary fs-5">Loading public theses...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="container mt-5">
+                <div className="alert alert-danger text-center">{error}</div>
             </div>
         );
     }
@@ -67,13 +77,7 @@ const HomePage = () => {
                     <FontAwesomeIcon icon={faGraduationCap} className="me-3" />
                     Public Theses
                 </h2>
-                {error && (
-                    <div className="alert alert-danger" role="alert">
-                        {error}
-                    </div>
-                )}
-
-                {theses.length > 0 ? (
+                {theses && theses.length > 0 ? ( // <-- UPDATED LOGIC HERE
                     <div className="list-group">
                         {theses.map((thesis) => (
                             <div key={thesis._id} className="list-group-item list-group-item-action mb-2">

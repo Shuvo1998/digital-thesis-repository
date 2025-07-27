@@ -11,7 +11,8 @@ const LoginPage = () => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const { login } = useAuth();
+    // Get the login function and the current user from the context
+    const { login, user } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -19,9 +20,16 @@ const LoginPage = () => {
         setError('');
 
         const result = await login(email, password);
-
+        console.log('Login result:', result);
         if (result.success) {
-            navigate('/dashboard');
+            // New Redirection Logic based on user role
+            console.log('User role:', result.user?.role);
+            // Redirect based on user role 
+            if (result.user?.role === 'admin' || result.user?.role === 'supervisor') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/dashboard');
+            }
         } else {
             setError(result.error || 'Login failed. Please check your credentials.');
         }

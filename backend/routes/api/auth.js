@@ -6,7 +6,7 @@ const config = require('config');
 const { check, validationResult } = require('express-validator');
 const User = require('../../models/User');
 
-// Import the auth middleware
+// FIX: Import the middleware function directly, not via destructuring
 const auth = require('../../middleware/auth');
 
 // @route   GET api/auth

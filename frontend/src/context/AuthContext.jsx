@@ -11,84 +11,99 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(Cookies.get('token') || null);
     const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    axios.defaults.baseURL = 'http://localhost:5000';
-
-    // This function now only runs on initial load to check for an existing token
-    useEffect(() => {
-        const checkTokenAndLoadUser = async () => {
-            const storedToken = Cookies.get('token');
-            if (storedToken) {
-                axios.defaults.headers.common['x-auth-token'] = storedToken;
-                try {
-                    const res = await axios.get('/api/auth');
-                    setUser(res.data);
-                    setToken(storedToken);
-                } catch (err) {
-                    console.error('Error loading user:', err.response ? err.response.data : err.message);
-                    setToken(null);
-                    setUser(null);
-                    Cookies.remove('token');
-                    delete axios.defaults.headers.common['x-auth-token'];
-                }
-            }
-            setLoading(false);
-        };
-        checkTokenAndLoadUser();
-    }, []);
-
-    // Function to handle user login
-    const login = async (email, password) => {
-        try {
-            // Step 1: Log in to get the token
-            const loginRes = await axios.post('/api/auth', { email, password });
-            const newToken = loginRes.data.token;
-
-            // Step 2: Set the token and axios header immediately
-            Cookies.set('token', newToken, { expires: 7 });
-            axios.defaults.headers.common['x-auth-token'] = newToken;
-
-            // Step 3: Use the new token to fetch the user data directly
-            const userRes = await axios.get('/api/auth');
-
-            // Step 4: Update state with both the token and the user
-            setToken(newToken);
-            setUser(userRes.data);
-
-            return { success: true };
-        } catch (err) {
-            console.error('Login error:', err.response ? err.response.data : err.message);
-            // Clear any invalid tokens or headers
-            Cookies.remove('token');
-            delete axios.defaults.headers.common['x-auth-token'];
-            return { success: false, error: err.response ? err.response.data.errors[0].msg : 'Login failed' };
+    // Helper function to set the Authorization header for all Axios requests
+    const setAuthHeader = (authToken) => {
+        if (authToken) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
         }
     };
 
-    // Function to handle user registration
+    // Helper function to load user data from the backend
+    // FIX: loadUser now accepts a token argument
+    const loadUser = async (authToken) => {
+        const currentToken = authToken || token;
+        if (currentToken) {
+            setAuthHeader(currentToken);
+            try {
+                const res = await axios.get('http://localhost:5000/api/auth');
+                setUser(res.data);
+                setIsAuthenticated(true);
+                return res.data;
+            } catch (err) {
+                console.error('AuthContext: Error loading user with stored token:', err.response?.data?.msg || err.message);
+                setToken(null);
+                setUser(null);
+                setIsAuthenticated(false);
+                Cookies.remove('token');
+                setAuthHeader(null);
+                return null;
+            }
+        }
+        setLoading(false);
+        return null;
+    };
+
+    // This effect runs on component mount and whenever the token changes
+    // It is now only responsible for initial load from cookies
+    useEffect(() => {
+        loadUser();
+    }, [token]);
+
+    // Function to handle user login
+    const login = async (email, password) => {
+        setLoading(true);
+        try {
+            const res = await axios.post('http://localhost:5000/api/auth', { email, password });
+            const newToken = res.data.token;
+
+            Cookies.set('token', newToken, { expires: 7 });
+            setToken(newToken);
+            setAuthHeader(newToken);
+            setIsAuthenticated(true);
+
+            // FIX: Pass the newToken directly to loadUser
+            const loadedUser = await loadUser(newToken);
+
+            return { success: true, user: loadedUser };
+        } catch (err) {
+            console.error('AuthContext login: Login error:', err.response?.data?.msg || err.message);
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            Cookies.remove('token');
+            setAuthHeader(null);
+            return { success: false, error: err.response?.data?.msg || 'Login failed', user: null };
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const register = async (username, email, password) => {
         try {
-            // Step 1: Register to get the token
-            const registerRes = await axios.post('/api/users', { username, email, password });
+            const registerRes = await axios.post('http://localhost:5000/api/users', { username, email, password });
             const newToken = registerRes.data.token;
 
-            // Step 2: Set the token and axios header immediately
             Cookies.set('token', newToken, { expires: 7 });
-            axios.defaults.headers.common['x-auth-token'] = newToken;
-
-            // Step 3: Use the new token to fetch the user data directly
-            const userRes = await axios.get('/api/auth');
-
-            // Step 4: Update state with both the token and the user
             setToken(newToken);
-            setUser(userRes.data);
+            setAuthHeader(newToken);
+            setIsAuthenticated(true);
 
-            return { success: true };
+            // FIX: Pass the newToken directly to loadUser
+            const loadedUser = await loadUser(newToken);
+
+            return { success: true, user: loadedUser };
         } catch (err) {
-            console.error('Register error:', err.response ? err.response.data : err.message);
+            console.error('AuthContext register: Register error:', err.response?.data?.msg || err.message);
             Cookies.remove('token');
-            delete axios.defaults.headers.common['x-auth-token'];
-            return { success: false, error: err.response ? err.response.data.errors[0].msg : 'Registration failed' };
+            setAuthHeader(null);
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            return { success: false, error: err.response?.data?.errors?.[0]?.msg || 'Registration failed', user: null };
         }
     };
 
@@ -96,8 +111,9 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setToken(null);
         setUser(null);
+        setIsAuthenticated(false);
         Cookies.remove('token');
-        delete axios.defaults.headers.common['x-auth-token'];
+        setAuthHeader(null);
     };
 
     // Value provided to consumers of the context
@@ -108,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated,
     };
 
     return (

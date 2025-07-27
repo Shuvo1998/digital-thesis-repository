@@ -1,7 +1,8 @@
+// backend/routes/api/theses.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../../middleware/auth');
-const role = require('../../middleware/role');
+const role = require('../../middleware/role'); // Your existing role middleware
 const Thesis = require('../../models/Thesis');
 const multer = require('multer');
 const path = require('path');
@@ -35,6 +36,7 @@ const upload = multer({
 // @route   GET api/theses/pending
 // @desc    Get all pending theses for admin/supervisor dashboard
 // @access  Private (Admin & Supervisor only)
+// Ensure 'auth' runs before 'role'
 router.get('/pending', auth, role(['admin', 'supervisor']), async (req, res) => {
     try {
         const pendingTheses = await Thesis.find({ status: 'pending' }).populate('user', ['username']);
@@ -50,6 +52,7 @@ router.get('/pending', auth, role(['admin', 'supervisor']), async (req, res) => 
 // @access  Private
 router.get('/me', auth, async (req, res) => {
     try {
+        // req.user.id is set by the 'auth' middleware
         const userTheses = await Thesis.find({ user: req.user.id });
         res.json(userTheses);
     } catch (err) {
@@ -86,7 +89,7 @@ router.post('/submit', auth, upload.single('file'), async (req, res) => {
 
         // Create a new thesis document
         const newThesis = new Thesis({
-            user: req.user.id,
+            user: req.user.id, // req.user.id is set by the 'auth' middleware
             title,
             abstract,
             authorName,
@@ -103,6 +106,78 @@ router.post('/submit', auth, upload.single('file'), async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/theses/:id
+// @desc    Get a single thesis by ID
+// @access  Public (for approved/public theses) or Private (for user/admin)
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const thesis = await Thesis.findById(req.params.id).populate('user', ['username']);
+
+        if (!thesis) {
+            return res.status(404).json({ msg: 'Thesis not found' });
+        }
+
+        // Check if the thesis is public or if the user has permission to view it
+        // req.user is set by the 'auth' middleware
+        const isPublic = thesis.status === 'approved' && thesis.isPublic;
+        const isOwner = req.user && req.user.id.toString() === thesis.user._id.toString();
+        const isAdminOrSupervisor = req.user && (req.user.role === 'admin' || req.user.role === 'supervisor');
+
+        if (isPublic || isOwner || isAdminOrSupervisor) {
+            res.json(thesis);
+        } else {
+            return res.status(403).json({ msg: 'Access denied. You do not have permission to view this thesis.' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        // Handle malformed IDs
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Thesis not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/theses/:id/approve
+// @desc    Approve a pending thesis
+// @access  Private (Admin & Supervisor Only)
+// Ensure 'auth' runs before 'role'
+router.put('/:id/approve', auth, role(['admin', 'supervisor']), async (req, res) => {
+    try {
+        const thesis = await Thesis.findById(req.params.id);
+        if (!thesis) {
+            return res.status(404).json({ message: 'Thesis not found' });
+        }
+
+        thesis.status = 'approved';
+        await thesis.save();
+        res.status(200).json({ message: 'Thesis approved successfully', thesis });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT /api/theses/:id/reject
+// @desc    Reject a pending thesis
+// @access  Private (Admin & Supervisor Only)
+// Ensure 'auth' runs before 'role'
+router.put('/:id/reject', auth, role(['admin', 'supervisor']), async (req, res) => {
+    try {
+        const thesis = await Thesis.findById(req.params.id);
+        if (!thesis) {
+            return res.status(404).json({ message: 'Thesis not found' });
+        }
+
+        thesis.status = 'rejected';
+        await thesis.save();
+        res.status(200).json({ message: 'Thesis rejected successfully', thesis });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

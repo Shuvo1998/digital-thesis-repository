@@ -10,15 +10,21 @@ import {
     faSignOutAlt,
     faUpload,
     faUserCircle,
-    faSearch
+    faSearch,
+    faUserShield,
+    faUsers,
+    faCaretDown, // New icon for the dropdown caret
+    faEdit // New icon for Edit Profile
 } from '@fortawesome/free-solid-svg-icons';
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // New state for mobile menu
-    const navbarRef = useRef(null); // Ref to the navbar element
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // NEW: State for the profile dropdown
+    const navbarRef = useRef(null);
+    const profileDropdownRef = useRef(null); // NEW: Ref for the profile dropdown
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -29,61 +35,56 @@ const Navbar = () => {
         }
     };
 
-    // Toggle the mobile menu state
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
+        setIsProfileDropdownOpen(false); // Close profile dropdown when mobile menu is toggled
     };
 
-    // Effect to handle clicks outside the navbar
+    const toggleProfileDropdown = () => {
+        setIsProfileDropdownOpen(!isProfileDropdownOpen);
+        setIsMobileMenuOpen(false); // Close mobile menu when profile dropdown is toggled
+    };
+
     useEffect(() => {
         const handleClickOutside = (event) => {
-            // If the mobile menu is open and the click is outside the navbar, close it
             if (navbarRef.current && !navbarRef.current.contains(event.target)) {
                 setIsMobileMenuOpen(false);
             }
+            // NEW: Handle clicking outside the profile dropdown
+            if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+                setIsProfileDropdownOpen(false);
+            }
         };
-
-        // Add event listener when the component mounts
         document.addEventListener('mousedown', handleClickOutside);
-
-        // Clean up the event listener when the component unmounts
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [navbarRef]); // Re-run effect if ref changes (optional, but good practice)
+    }, [navbarRef, profileDropdownRef]);
 
-    const activeLinkStyle = ({ isActive }) => ({
-        borderBottom: isActive ? '2px solid #fff' : 'none',
-        paddingBottom: '2px',
-        transition: 'border-bottom 0.2s ease-in-out'
-    });
+    const isAdminOrSupervisor = user?.role === 'admin' || user?.role === 'supervisor';
 
     return (
         <nav ref={navbarRef} className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
             <div className="container">
-                {/* Brand */}
                 <NavLink to="/" className="navbar-brand d-flex align-items-center">
                     <FontAwesomeIcon icon={faGraduationCap} size="2x" className="me-2" />
                     <span className="fs-5 d-none d-md-block">Digital Thesis Repository</span>
                 </NavLink>
 
-                {/* Mobile Toggler */}
                 <button
                     className="navbar-toggler"
                     type="button"
-                    onClick={toggleMobileMenu} // Use the custom toggle function
+                    onClick={toggleMobileMenu}
                     aria-expanded={isMobileMenuOpen ? "true" : "false"}
                     aria-label="Toggle navigation"
                 >
                     <span className="navbar-toggler-icon"></span>
                 </button>
 
-                {/* The collapse div is conditionally shown based on our state */}
                 <div
                     className={`navbar-collapse ${isMobileMenuOpen ? 'collapse show' : 'collapse'}`}
                     id="navbarNav"
                 >
-                    {/* Search Bar */}
                     <form className="d-flex mx-auto my-2 my-lg-0 w-50" onSubmit={handleSearch}>
                         <div className="input-group">
                             <span className="input-group-text bg-light text-primary border-0">
@@ -100,35 +101,89 @@ const Navbar = () => {
                         </div>
                     </form>
 
-                    {/* Nav Items */}
                     <ul className="navbar-nav ms-auto">
                         {isAuthenticated ? (
                             <>
-                                <li className="nav-item me-lg-2">
-                                    <NavLink to="/dashboard" className="nav-link" style={activeLinkStyle} onClick={() => setIsMobileMenuOpen(false)}>
-                                        <FontAwesomeIcon icon={faUserCircle} className="me-1" />Dashboard
-                                    </NavLink>
-                                </li>
-                                <li className="nav-item me-lg-2">
-                                    <NavLink to="/upload" className="nav-link" style={activeLinkStyle} onClick={() => setIsMobileMenuOpen(false)}>
-                                        <FontAwesomeIcon icon={faUpload} className="me-1" />Upload Thesis
-                                    </NavLink>
-                                </li>
-                                <li className="nav-item">
-                                    <button onClick={logout} className="btn btn-danger btn-sm">
-                                        <FontAwesomeIcon icon={faSignOutAlt} className="me-1" />Logout
+                                {/* Conditional links for Admin/Supervisor */}
+                                {isAdminOrSupervisor && (
+                                    <>
+                                        <li className="nav-item me-lg-2">
+                                            <NavLink to="/admin-dashboard" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                                <FontAwesomeIcon icon={faUserShield} className="me-1" />Thesis Management
+                                            </NavLink>
+                                        </li>
+                                        <li className="nav-item me-lg-2">
+                                            <NavLink to="/manage-users" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                                <FontAwesomeIcon icon={faUsers} className="me-1" />User Management
+                                            </NavLink>
+                                        </li>
+                                    </>
+                                )}
+
+                                {/* Links for regular users */}
+                                {!isAdminOrSupervisor && (
+                                    <li className="nav-item me-lg-2">
+                                        <NavLink to="/upload" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                            <FontAwesomeIcon icon={faUpload} className="me-1" />Upload Thesis
+                                        </NavLink>
+                                    </li>
+                                )}
+
+                                {/* Profile dropdown button */}
+                                <li className="nav-item dropdown" ref={profileDropdownRef}>
+                                    <button
+                                        className="nav-link btn btn-link dropdown-toggle"
+                                        onClick={toggleProfileDropdown}
+                                        aria-expanded={isProfileDropdownOpen ? "true" : "false"}
+                                    >
+                                        <FontAwesomeIcon icon={faUserCircle} className="me-1" />
+                                        {user?.username}
+                                        <FontAwesomeIcon icon={faCaretDown} className="ms-2" />
                                     </button>
+                                    <div className={`dropdown-menu dropdown-menu-end ${isProfileDropdownOpen ? 'show' : ''}`}>
+                                        <NavLink
+                                            to="/profile"
+                                            className="dropdown-item"
+                                            onClick={() => {
+                                                setIsProfileDropdownOpen(false);
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            <FontAwesomeIcon icon={faUserCircle} className="me-2" />View Profile
+                                        </NavLink>
+                                        <NavLink
+                                            to="/edit-profile"
+                                            className="dropdown-item"
+                                            onClick={() => {
+                                                setIsProfileDropdownOpen(false);
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            <FontAwesomeIcon icon={faEdit} className="me-2" />Edit Profile
+                                        </NavLink>
+                                        <div className="dropdown-divider"></div>
+                                        <button
+                                            className="dropdown-item"
+                                            onClick={() => {
+                                                logout();
+                                                setIsProfileDropdownOpen(false);
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                        >
+                                            <FontAwesomeIcon icon={faSignOutAlt} className="me-2" />Logout
+                                        </button>
+                                    </div>
                                 </li>
                             </>
                         ) : (
                             <>
                                 <li className="nav-item me-lg-2">
-                                    <NavLink to="/login" className="nav-link" style={activeLinkStyle} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <NavLink to="/login" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <FontAwesomeIcon icon={faSignInAlt} className="me-1" />Login
                                     </NavLink>
                                 </li>
                                 <li className="nav-item">
-                                    <NavLink to="/register" className="nav-link" style={activeLinkStyle} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <NavLink to="/register" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                         <FontAwesomeIcon icon={faUserPlus} className="me-1" />Register
                                     </NavLink>
                                 </li>

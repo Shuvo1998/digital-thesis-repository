@@ -43,7 +43,8 @@ const UploadThesisPage = () => {
         formData.append('file', file);
 
         try {
-            const response = await axios.post('/api/theses/submit', formData, {
+            // FIX: Use the full URL for the backend API endpoint
+            const response = await axios.post('http://localhost:5000/api/theses/submit', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -51,14 +52,24 @@ const UploadThesisPage = () => {
 
             setSuccess('Thesis submitted successfully! Redirecting you to the dashboard...');
 
-            // Redirect to the dashboard after a short delay
             setTimeout(() => {
                 navigate('/dashboard');
-            }, 2000); // Redirect after 2 seconds
+            }, 2000);
 
         } catch (err) {
             console.error('Submission error:', err);
-            setError(err.response?.data?.message || 'Failed to submit thesis. Please ensure your backend is running.');
+            // Log the error response from the server to the console
+            if (err.response) {
+                console.error("Server response data:", err.response.data);
+                console.error("Server status code:", err.response.status);
+                setError(err.response.data.msg || 'Failed to submit thesis. Check your backend server.');
+            } else if (err.request) {
+                console.error("No response received:", err.request);
+                setError('No response from server. Please ensure your backend is running on port 5000.');
+            } else {
+                console.error("Error setting up the request:", err.message);
+                setError('An unexpected error occurred. Check your internet connection.');
+            }
         } finally {
             setIsSubmitting(false);
         }
