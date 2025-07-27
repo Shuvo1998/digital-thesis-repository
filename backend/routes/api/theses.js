@@ -3,13 +3,13 @@ const router = express.Router();
 const auth = require('../../middleware/auth');
 const role = require('../../middleware/role');
 const Thesis = require('../../models/Thesis');
-const multer = require('multer'); // Import multer
-const path = require('path'); // Import path
+const multer = require('multer');
+const path = require('path');
 
 // Configure Multer for file storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Uploads will be saved in the 'uploads' directory
+        // 'uploads' directory must exist in your backend root
         cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
@@ -44,6 +44,7 @@ router.get('/pending', auth, role(['admin', 'supervisor']), async (req, res) => 
         res.status(500).send('Server Error');
     }
 });
+
 // @route   GET api/theses/me
 // @desc    Get all theses for the authenticated user
 // @access  Private
@@ -56,7 +57,6 @@ router.get('/me', auth, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-// ... (imports and existing code)
 
 // @route   GET api/theses/public
 // @desc    Get all public and approved theses
@@ -70,25 +70,25 @@ router.get('/public', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-// @route   POST api/theses/upload
+
+// @route   POST api/theses/submit
 // @desc    Submit a new thesis
 // @access  Private
-router.post('/upload', auth, upload.single('thesisFile'), async (req, res) => {
+router.post('/submit', auth, upload.single('file'), async (req, res) => {
     try {
-        // req.file contains the uploaded file details
+        // Check if the file was uploaded
         if (!req.file) {
             return res.status(400).json({ msg: 'No file uploaded' });
         }
 
-        // req.body contains the other form data (metadata)
-        const { title, abstract, keywords, authorName, department, submissionYear } = req.body;
+        // Access other form data (metadata) from req.body
+        const { title, abstract, authorName, department, submissionYear } = req.body;
 
         // Create a new thesis document
         const newThesis = new Thesis({
             user: req.user.id,
             title,
             abstract,
-            keywords: keywords.split(',').map(keyword => keyword.trim()), // Assuming keywords are comma-separated
             authorName,
             department,
             submissionYear,

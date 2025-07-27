@@ -11,10 +11,14 @@ connectDB();
 app.use(express.json({ extended: false }));
 app.use(cors());
 
+// Add this line to serve static files from the 'uploads' directory
+// This is essential for accessing the uploaded PDF files
+app.use('/uploads', express.static('uploads'));
+
 // Define API routes
 app.use('/api/users', require('./routes/api/users'));
 app.use('/api/auth', require('./routes/api/auth'));
-app.use('/api/theses', require('./routes/api/theses')); // New line for theses routes
+app.use('/api/theses', require('./routes/api/theses'));
 
 const PORT = process.env.PORT || 5000;
 
