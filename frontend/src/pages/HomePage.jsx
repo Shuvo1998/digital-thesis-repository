@@ -33,7 +33,7 @@ const HomePage = () => {
 
     const handleUploadClick = () => {
         if (isAuthenticated) {
-            navigate('/upload');
+            navigate('/upload-thesis'); // Navigate to the upload page
         } else {
             navigate('/login');
         }

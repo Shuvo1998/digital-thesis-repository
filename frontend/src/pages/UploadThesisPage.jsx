@@ -1,8 +1,10 @@
 // frontend/src/pages/UploadThesisPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faUpload,
@@ -12,21 +14,51 @@ import {
     faCalendar,
     faFilePdf,
     faAlignLeft,
+    faSpinner,
+    faTag,
+    faChalkboardTeacher
 } from '@fortawesome/free-solid-svg-icons';
+import '../styles/UploadThesisPage.css';
 
 const UploadThesisPage = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const navigate = useNavigate();
 
     const [title, setTitle] = useState('');
     const [authorName, setAuthorName] = useState(user?.username || '');
     const [department, setDepartment] = useState('');
-    const [submissionYear, setSubmissionYear] = useState('');
+    const [submissionYear, setSubmissionYear] = useState(new Date());
     const [abstract, setAbstract] = useState('');
+    const [keywords, setKeywords] = useState('');
+    const [supervisor, setSupervisor] = useState('');
+    const [supervisors, setSupervisors] = useState([]);
     const [file, setFile] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingSupervisors, setIsLoadingSupervisors] = useState(true);
+
+    useEffect(() => {
+        const fetchSupervisors = async () => {
+            if (!token) return;
+            try {
+                const res = await axios.get('http://localhost:5000/api/users/supervisors', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setSupervisors(res.data);
+                if (res.data.length > 0) {
+                    setSupervisor(res.data[0]._id);
+                }
+            } catch (err) {
+                console.error('Error fetching supervisors:', err);
+                setError('Failed to load supervisors. Please try again.');
+            } finally {
+                setIsLoadingSupervisors(false);
+            }
+        };
+
+        fetchSupervisors();
+    }, [token]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -36,17 +68,19 @@ const UploadThesisPage = () => {
 
         const formData = new FormData();
         formData.append('title', title);
-        formData.append('authorName', authorName);
+        formData.append('authorName', authorName); // CORRECTED: Changed 'studentName' to 'authorName'
         formData.append('department', department);
-        formData.append('submissionYear', submissionYear);
+        formData.append('submissionYear', submissionYear.getFullYear());
         formData.append('abstract', abstract);
-        formData.append('file', file);
+        formData.append('keywords', keywords);
+        formData.append('supervisor', supervisor);
+        formData.append('thesisFile', file);
 
         try {
-            // FIX: Use the full URL for the backend API endpoint
-            const response = await axios.post('http://localhost:5000/api/theses/submit', formData, {
+            await axios.post('http://localhost:5000/api/theses', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -57,19 +91,9 @@ const UploadThesisPage = () => {
             }, 2000);
 
         } catch (err) {
-            console.error('Submission error:', err);
-            // Log the error response from the server to the console
-            if (err.response) {
-                console.error("Server response data:", err.response.data);
-                console.error("Server status code:", err.response.status);
-                setError(err.response.data.msg || 'Failed to submit thesis. Check your backend server.');
-            } else if (err.request) {
-                console.error("No response received:", err.request);
-                setError('No response from server. Please ensure your backend is running on port 5000.');
-            } else {
-                console.error("Error setting up the request:", err.message);
-                setError('An unexpected error occurred. Check your internet connection.');
-            }
+            console.error('Submission error:', err.response || err);
+            const errMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || 'Failed to submit thesis.';
+            setError(errMsg);
         } finally {
             setIsSubmitting(false);
         }
@@ -79,30 +103,33 @@ const UploadThesisPage = () => {
         <div className="container mt-5">
             <div className="row justify-content-center">
                 <div className="col-lg-8">
-                    <div className="card shadow-sm p-4">
-                        <h2 className="card-title text-center mb-4">
-                            <FontAwesomeIcon icon={faUpload} className="me-2 text-primary" />
-                            Upload Your Thesis
-                        </h2>
-                        <p className="text-center text-muted mb-4">
-                            Please fill in the details below to submit your work for review.
-                        </p>
+                    <div className="card upload-card p-4">
+                        <div className="upload-header">
+                            <FontAwesomeIcon icon={faUpload} />
+                            <h2>Upload Your Thesis</h2>
+                            <p className="text-muted">
+                                Please fill in the details below to submit your work for review.
+                            </p>
+                        </div>
 
                         {error && <div className="alert alert-danger">{error}</div>}
                         {success && <div className="alert alert-success">{success}</div>}
+                        {isLoadingSupervisors && !error && (
+                            <div className="text-center text-muted mb-4">
+                                <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                                Loading supervisors...
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-3">
-                                <label htmlFor="title" className="form-label">
-                                    Thesis Title
-                                </label>
+                            <div className="mb-3 form-group">
+                                <label htmlFor="title" className="form-label">Thesis Title</label>
                                 <div className="input-group">
                                     <span className="input-group-text"><FontAwesomeIcon icon={faHeading} /></span>
                                     <input
                                         type="text"
                                         id="title"
                                         className="form-control"
-                                        placeholder="Enter the title of your thesis"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         required
@@ -111,17 +138,14 @@ const UploadThesisPage = () => {
                             </div>
 
                             <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="authorName" className="form-label">
-                                        Author's Name
-                                    </label>
+                                <div className="col-md-6 mb-3 form-group">
+                                    <label htmlFor="authorName" className="form-label">Author's Name</label>
                                     <div className="input-group">
                                         <span className="input-group-text"><FontAwesomeIcon icon={faUser} /></span>
                                         <input
                                             type="text"
                                             id="authorName"
                                             className="form-control"
-                                            placeholder="Enter the author's name"
                                             value={authorName}
                                             onChange={(e) => setAuthorName(e.target.value)}
                                             required
@@ -129,17 +153,14 @@ const UploadThesisPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="col-md-6 mb-3">
-                                    <label htmlFor="department" className="form-label">
-                                        Department
-                                    </label>
+                                <div className="col-md-6 mb-3 form-group">
+                                    <label htmlFor="department" className="form-label">Department</label>
                                     <div className="input-group">
                                         <span className="input-group-text"><FontAwesomeIcon icon={faBuilding} /></span>
                                         <input
                                             type="text"
                                             id="department"
                                             className="form-control"
-                                            placeholder="e.g., Computer Science"
                                             value={department}
                                             onChange={(e) => setDepartment(e.target.value)}
                                             required
@@ -148,56 +169,86 @@ const UploadThesisPage = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-3">
-                                <label htmlFor="submissionYear" className="form-label">
-                                    Submission Year
-                                </label>
+                            <div className="row">
+                                <div className="col-md-6 mb-3 form-group">
+                                    <label htmlFor="supervisor" className="form-label">Supervisor</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text"><FontAwesomeIcon icon={faChalkboardTeacher} /></span>
+                                        <select
+                                            id="supervisor"
+                                            className="form-select"
+                                            value={supervisor}
+                                            onChange={(e) => setSupervisor(e.target.value)}
+                                            required
+                                            disabled={isLoadingSupervisors}
+                                        >
+                                            {supervisors.map((sup) => (
+                                                <option key={sup._id} value={sup._id}>
+                                                    {sup.username}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 mb-3 form-group">
+                                    <label htmlFor="submissionYear" className="form-label">Submission Year</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text"><FontAwesomeIcon icon={faCalendar} /></span>
+                                        <DatePicker
+                                            selected={submissionYear}
+                                            onChange={(date) => setSubmissionYear(date)}
+                                            showYearPicker
+                                            dateFormat="yyyy"
+                                            className="form-control"
+                                            id="submissionYear"
+                                            maxDate={new Date()}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 form-group">
+                                <label htmlFor="keywords" className="form-label">Keywords (comma separated)</label>
                                 <div className="input-group">
-                                    <span className="input-group-text"><FontAwesomeIcon icon={faCalendar} /></span>
+                                    <span className="input-group-text"><FontAwesomeIcon icon={faTag} /></span>
                                     <input
-                                        type="number"
-                                        id="submissionYear"
+                                        type="text"
+                                        id="keywords"
                                         className="form-control"
-                                        placeholder="e.g., 2024"
-                                        value={submissionYear}
-                                        onChange={(e) => setSubmissionYear(e.target.value)}
+                                        value={keywords}
+                                        onChange={(e) => setKeywords(e.target.value)}
                                         required
                                     />
                                 </div>
                             </div>
 
-                            <div className="mb-3">
-                                <label htmlFor="abstract" className="form-label">
-                                    Abstract
-                                </label>
+                            <div className="mb-4 form-group">
+                                <label htmlFor="thesisFile" className="form-label">Upload Thesis File (PDF)</label>
+                                <div className="input-group">
+                                    <span className="input-group-text"><FontAwesomeIcon icon={faFilePdf} /></span>
+                                    <input
+                                        type="file"
+                                        id="thesisFile"
+                                        className="form-control"
+                                        accept="application/pdf"
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mb-3 form-group">
+                                <label htmlFor="abstract" className="form-label">Abstract</label>
                                 <div className="input-group">
                                     <span className="input-group-text"><FontAwesomeIcon icon={faAlignLeft} /></span>
                                     <textarea
                                         id="abstract"
                                         className="form-control"
                                         rows="5"
-                                        placeholder="Provide a summary of your thesis"
                                         value={abstract}
                                         onChange={(e) => setAbstract(e.target.value)}
                                         required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="mb-4">
-                                <label htmlFor="file" className="form-label">
-                                    Upload Thesis File (PDF)
-                                </label>
-                                <div className="input-group">
-                                    <span className="input-group-text"><FontAwesomeIcon icon={faFilePdf} /></span>
-                                    <input
-                                        type="file"
-                                        id="file"
-                                        className="form-control"
-                                        accept="application/pdf"
-                                        onChange={(e) => setFile(e.target.files[0])}
-                                        required
-                                    />
+                                    ></textarea>
                                 </div>
                             </div>
 

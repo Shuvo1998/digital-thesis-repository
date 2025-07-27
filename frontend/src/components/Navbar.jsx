@@ -123,7 +123,7 @@ const Navbar = () => {
                                 {/* Links for regular users */}
                                 {!isAdminOrSupervisor && (
                                     <li className="nav-item me-lg-2">
-                                        <NavLink to="/upload" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <NavLink to="/upload-thesis" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
                                             <FontAwesomeIcon icon={faUpload} className="me-1" />Upload Thesis
                                         </NavLink>
                                     </li>

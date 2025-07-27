@@ -36,7 +36,7 @@ const App = () => {
 
               {/* Protected Routes for all authenticated users */}
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-              <Route path="/upload" element={<ProtectedRoute><UploadThesisPage /></ProtectedRoute>} />
+              <Route path="/upload-thesis" element={<ProtectedRoute><UploadThesisPage /></ProtectedRoute>} />
               <Route path="/thesis/:id" element={<ProtectedRoute><ThesisDetailPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               {/* NEW: Route for the Edit Profile Page */}

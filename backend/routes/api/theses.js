@@ -6,6 +6,7 @@ const role = require('../../middleware/role'); // Your existing role middleware
 const Thesis = require('../../models/Thesis');
 const multer = require('multer');
 const path = require('path');
+const { check, validationResult } = require('express-validator');
 
 // Configure Multer for file storage
 const storage = multer.diskStorage({
@@ -32,6 +33,54 @@ const upload = multer({
         }
     }
 });
+
+// @route   POST api/theses
+// @desc    Submit a new thesis
+// @access  Private
+router.post(
+    '/', // CORRECTED: Changed the path to match the frontend call
+    auth,
+    upload.single('thesisFile'), // CORRECTED: Changed 'file' to 'thesisFile'
+    async (req, res) => {
+        // Validation check
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        try {
+            // Check if the file was uploaded
+            if (!req.file) {
+                return res.status(400).json({ msg: 'No file uploaded. Thesis file is required.' });
+            }
+
+            // CORRECTED: Destructure all required fields from req.body
+            const { title, abstract, authorName, department, submissionYear, supervisor, keywords } = req.body;
+
+            // CORRECTED: Create a new thesis document with all fields
+            const newThesis = new Thesis({
+                user: req.user.id,
+                title,
+                abstract,
+                authorName,
+                department,
+                submissionYear,
+                supervisor, // Now included
+                keywords: keywords.split(',').map(keyword => keyword.trim()), // Now included and converted to array
+                filePath: req.file.path,
+                fileName: req.file.originalname, // Using originalname for consistency
+            });
+
+            await newThesis.save();
+
+            res.status(201).json(newThesis);
+
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send('Server Error');
+        }
+    }
+);
 
 // @route   GET api/theses/pending
 // @desc    Get all pending theses for admin/supervisor dashboard
@@ -68,41 +117,6 @@ router.get('/public', async (req, res) => {
     try {
         const publicTheses = await Thesis.find({ status: 'approved', isPublic: true });
         res.json(publicTheses);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-// @route   POST api/theses/submit
-// @desc    Submit a new thesis
-// @access  Private
-router.post('/submit', auth, upload.single('file'), async (req, res) => {
-    try {
-        // Check if the file was uploaded
-        if (!req.file) {
-            return res.status(400).json({ msg: 'No file uploaded' });
-        }
-
-        // Access other form data (metadata) from req.body
-        const { title, abstract, authorName, department, submissionYear } = req.body;
-
-        // Create a new thesis document
-        const newThesis = new Thesis({
-            user: req.user.id, // req.user.id is set by the 'auth' middleware
-            title,
-            abstract,
-            authorName,
-            department,
-            submissionYear,
-            filePath: req.file.path,
-            fileName: req.file.filename,
-        });
-
-        await newThesis.save();
-
-        res.json(newThesis);
-
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
