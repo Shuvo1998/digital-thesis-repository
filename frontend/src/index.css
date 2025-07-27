@@ -1,0 +1,10 @@
+/* frontend/src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add your other global styles below these lines */
+body {
+  /* You can set a global font here, for example */
+  font-family: 'Roboto', sans-serif;
+}
