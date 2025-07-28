@@ -1,15 +1,16 @@
-/* frontend/src/App.css */
+/* In frontend/src/index.css (or App.css) */
 
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #eef1f5;
-  /* A soft, elegant off-white background */
-  color: #343a40;
-  /* A dark, soft gray for primary text */
+html,
+body,
+#root {
+  height: 100%;
+  /* Ensures these elements take up the full height of their parent/viewport */
   margin: 0;
+  padding: 0;
 }
 
-.content-wrapper {
-  min-height: 100vh;
-  padding-top: 8rem;
+body {
+  /* ... your existing body styles ... */
+  overflow-y: auto;
+  /* CRITICAL: Allows vertical scrolling when content exceeds viewport height */
 }

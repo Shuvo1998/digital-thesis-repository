@@ -1,7 +1,7 @@
-// frontend/src/components/Navbar.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSearch } from '../context/SearchContext'; // New: Import the search context
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faGraduationCap,
@@ -15,25 +15,27 @@ import {
     faUsers,
     faCaretDown,
     faEdit,
-    faTools // New: Import for Thesis Tools icon
+    faTools
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
+    const { searchQuery, setSearchQuery, handleSearch } = useSearch(); // Updated: Use search context
     const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const navbarRef = useRef(null);
     const profileDropdownRef = useRef(null);
     const [isSticky, setIsSticky] = useState(false);
 
-    const handleSearch = (e) => {
+    // Renamed to handleFormSubmit to avoid confusion with the context function
+    const handleFormSubmit = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-            setSearchQuery('');
+            handleSearch(searchQuery.trim()); // Call the new async search function from context
+            navigate('/'); // Navigate to the home page to show results
+            // Don't clear searchQuery here, let the user see what they searched for
             setIsMobileMenuOpen(false);
         }
     };
@@ -104,7 +106,7 @@ const Navbar = () => {
                     className={`navbar-collapse ${isMobileMenuOpen ? 'collapse show' : 'collapse'}`}
                     id="navbarNav"
                 >
-                    <form className="d-flex mx-auto my-2 my-lg-0 w-50" onSubmit={handleSearch}>
+                    <form className="d-flex mx-auto my-2 my-lg-0 w-50" onSubmit={handleFormSubmit}>
                         <div className="input-group">
                             <span className="input-group-text bg-white text-primary border-0">
                                 <FontAwesomeIcon icon={faSearch} />

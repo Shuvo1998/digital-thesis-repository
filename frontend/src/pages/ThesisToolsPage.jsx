@@ -1,164 +1,241 @@
-// frontend/src/pages/ThesisToolsPage.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import {
+    faMicroscope, // For Text Analysis
+    faSpellCheck, // For Grammar Check
+    faCopy,       // For Plagiarism Check
+    faSpinner,
+    faCheckCircle,
+    faExclamationCircle,
+    faLightbulb, // For insights
+    faKeyboard, // For input
+    faSmile, faMeh, faFrown, // For sentiment icons
+    faTools // Corrected: Added faTools import
+} from '@fortawesome/free-solid-svg-icons';
+import '../styles/ThesisToolsPage.css'; // Create this CSS file for styling
 
 const ThesisToolsPage = () => {
-    // FIX: Get the token directly from the useAuth hook
-    const { user, token } = useAuth();
-    const [text, setText] = useState('');
-    const [grammarResult, setGrammarResult] = useState(null);
-    const [plagiarismResult, setPlagiarismResult] = useState(null);
-    const [loadingGrammar, setLoadingGrammar] = useState(false);
-    const [loadingPlagiarism, setLoadingPlagiarism] = useState(false);
+    const [inputText, setInputText] = useState('');
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleGrammarCheck = async () => {
-        if (!text.trim()) {
-            setError('Please enter text to perform the grammar check.');
-            return;
-        }
+    // State for Text Analysis
+    const [analysisResult, setAnalysisResult] = useState(null);
+
+    // State for Grammar Check
+    const [grammarIssues, setGrammarIssues] = useState([]);
+
+    // State for Plagiarism Check
+    const [plagiarismResult, setPlagiarismResult] = useState(null);
+
+    // Base URL for your Flask backend
+    const API_BASE_URL = 'http://localhost:5002'; // Corrected: Using port 5002
+
+    const handleAnalyzeText = async () => {
+        setLoading(true);
         setError('');
-        setLoadingGrammar(true);
-        setGrammarResult(null);
+        setAnalysisResult(null);
+        setGrammarIssues([]); // Clear other results
+        setPlagiarismResult(null); // Clear other results
 
         try {
-            // FIX: Use the token from the useAuth hook and set the correct Authorization header
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-            };
-
-            const response = await axios.post('/api/theses/check-grammar', { text }, config);
-            setGrammarResult(response.data.issues);
+            const response = await axios.post(`${API_BASE_URL}/analyze`, { text: inputText });
+            setAnalysisResult(response.data);
         } catch (err) {
-            console.error('Grammar check failed:', err);
-            setError(err.response?.data?.msg || 'Grammar check failed.');
+            console.error('Error calling text analysis service:', err);
+            setError(err.response?.data?.error || 'Failed to perform text analysis.');
         } finally {
-            setLoadingGrammar(false);
+            setLoading(false);
         }
     };
 
-    const handlePlagiarismScan = async () => {
-        if (!text.trim()) {
-            setError('Please enter text to perform the plagiarism scan.');
-            return;
-        }
+    const handleCheckGrammar = async () => {
+        setLoading(true);
         setError('');
-        setLoadingPlagiarism(true);
-        setPlagiarismResult(null);
+        setGrammarIssues([]);
+        setAnalysisResult(null); // Clear other results
+        setPlagiarismResult(null); // Clear other results
 
         try {
-            // FIX: Use the token from the useAuth hook and set the correct Authorization header
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-            };
+            const response = await axios.post(`${API_BASE_URL}/check-grammar`, { text: inputText });
+            setGrammarIssues(response.data.issues);
+        } catch (err) {
+            console.error('Error calling grammar checker AI service:', err);
+            setError(err.response?.data?.error || 'Failed to check grammar. Ensure the backend service is running and LanguageTool is initialized.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const response = await axios.post('/api/theses/check-plagiarism', { text }, config);
+    const handleCheckPlagiarism = async () => {
+        setLoading(true);
+        setError('');
+        setPlagiarismResult(null);
+        setAnalysisResult(null); // Clear other results
+        setGrammarIssues([]); // Clear other results
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/check-plagiarism`, { text: inputText });
             setPlagiarismResult(response.data);
         } catch (err) {
-            console.error('Plagiarism scan failed:', err);
-            setError(err.response?.data?.msg || 'Plagiarism scan failed.');
+            console.error('Error calling plagiarism checker AI service:', err);
+            setError(err.response?.data?.error || 'Failed to check plagiarism. Backend service might be down or an internal error occurred.');
         } finally {
-            setLoadingPlagiarism(false);
+            setLoading(false);
         }
+    };
+
+    const getSentimentIcon = (sentiment) => {
+        if (sentiment === 'Positive') return faSmile;
+        if (sentiment === 'Negative') return faFrown;
+        return faMeh;
     };
 
     return (
-        <div className="container mt-5">
-            <div className="card shadow-lg p-4">
-                <h2 className="card-title text-primary fw-bold mb-4">Writing Quality Tools</h2>
-                <p className="text-muted">
-                    Use this tool to analyze text for grammar issues and potential plagiarism.
-                </p>
-                <hr className="my-4" />
+        <div className="thesis-tools-page container my-5">
+            <h2 className="text-center mb-4 text-primary">
+                <FontAwesomeIcon icon={faTools} className="me-2" />Thesis AI Tools
+            </h2>
+            <p className="text-center text-muted mb-5">
+                Utilize advanced AI capabilities to analyze your thesis text, check grammar, and perform conceptual plagiarism scans.
+            </p>
 
-                <div className="mb-3">
-                    <h5 className="fw-bold">Text to Analyze</h5>
+            <div className="card shadow-sm mb-4">
+                <div className="card-header bg-primary text-white">
+                    <FontAwesomeIcon icon={faKeyboard} className="me-2" />
+                    Enter Your Thesis Text
+                </div>
+                <div className="card-body">
                     <textarea
                         className="form-control"
-                        id="thesisText"
                         rows="10"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        placeholder="Enter the abstract or text you want to check here..."
+                        placeholder="Paste your thesis abstract or a section of your text here for analysis..."
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        disabled={loading}
                     ></textarea>
                 </div>
-
-                {error && <div className="alert alert-danger">{error}</div>}
-
-                <div className="d-flex gap-2 mb-4">
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleGrammarCheck}
-                        disabled={loadingGrammar || loadingPlagiarism}
-                    >
-                        {loadingGrammar ? (
-                            <>
-                                <FontAwesomeIcon icon={faSpinner} spin className="me-2" /> Checking...
-                            </>
-                        ) : (
-                            'Run Editorial Assistant'
-                        )}
-                    </button>
-                    <button
-                        className="btn btn-primary"
-                        onClick={handlePlagiarismScan}
-                        disabled={loadingGrammar || loadingPlagiarism}
-                    >
-                        {loadingPlagiarism ? (
-                            <>
-                                <FontAwesomeIcon icon={faSpinner} spin className="me-2" /> Scanning...
-                            </>
-                        ) : (
-                            'Run Plagiarism Scan'
-                        )}
-                    </button>
-                </div>
-
-                {/* Display Grammar Checker Results */}
-                {grammarResult && (
-                    <div className="mt-4 p-4 rounded bg-light border">
-                        <h4 className="fw-bold text-primary">Editorial Assistant Report:</h4>
-                        {grammarResult.length > 0 ? (
-                            <ul className="list-group list-group-flush">
-                                {grammarResult.map((issue, index) => (
-                                    <li key={index} className="list-group-item bg-transparent">
-                                        <strong className="text-danger">Issue:</strong> {issue.message} <br />
-                                        <strong className="text-secondary">Suggestions:</strong> {issue.replacements.length > 0 ? issue.replacements.join(', ') : 'No suggestions'} <br />
-                                        <small className="text-muted">
-                                            **Context:** "{issue.context.trim()}"
-                                        </small>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <div className="alert alert-success mt-3">No grammar or spelling issues found.</div>
-                        )}
-                    </div>
-                )}
-
-                {/* Display Plagiarism Scan Results */}
-                {plagiarismResult && (
-                    <div className="mt-4 p-4 rounded bg-light border">
-                        <h4 className="fw-bold text-primary">Plagiarism Scan Report:</h4>
-                        <div className={`alert ${plagiarismResult.plagiarism_score > 70 ? 'alert-danger' : 'alert-info'} mt-3`}>
-                            <strong>Status:</strong> {plagiarismResult.status} <br />
-                            <strong>Plagiarism Score:</strong> {plagiarismResult.plagiarism_score}% <br />
-                            <small className="text-muted">
-                                {plagiarismResult.note}
-                            </small>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            <div className="d-grid gap-3 d-md-flex justify-content-center mb-5">
+                <button
+                    className="btn btn-outline-primary btn-lg flex-grow-1"
+                    onClick={handleAnalyzeText}
+                    disabled={loading || !inputText.trim()}
+                >
+                    {loading && analysisResult === null ? <FontAwesomeIcon icon={faSpinner} spin className="me-2" /> : <FontAwesomeIcon icon={faMicroscope} className="me-2" />}
+                    Analyze Text
+                </button>
+                <button
+                    className="btn btn-outline-success btn-lg flex-grow-1"
+                    onClick={handleCheckGrammar}
+                    disabled={loading || !inputText.trim()}
+                >
+                    {loading && grammarIssues.length === 0 && !error ? <FontAwesomeIcon icon={faSpinner} spin className="me-2" /> : <FontAwesomeIcon icon={faSpellCheck} className="me-2" />}
+                    Check Grammar
+                </button>
+                <button
+                    className="btn btn-outline-warning btn-lg flex-grow-1"
+                    onClick={handleCheckPlagiarism}
+                    disabled={loading || !inputText.trim()}
+                >
+                    {loading && plagiarismResult === null ? <FontAwesomeIcon icon={faSpinner} spin className="me-2" /> : <FontAwesomeIcon icon={faCopy} className="me-2" />}
+                    Check Plagiarism
+                </button>
+            </div>
+
+            {error && (
+                <div className="alert alert-danger text-center mb-4" role="alert">
+                    <FontAwesomeIcon icon={faExclamationCircle} className="me-2" />
+                    {error}
+                </div>
+            )}
+
+            {loading && !error && (analysisResult || grammarIssues.length > 0 || plagiarismResult) && (
+                <div className="alert alert-info text-center mb-4" role="alert">
+                    <FontAwesomeIcon icon={faSpinner} spin className="me-2" />
+                    Processing...
+                </div>
+            )}
+
+            {/* Display Text Analysis Results */}
+            {analysisResult && (
+                <div className="card shadow-sm mb-4 result-card">
+                    <div className="card-header bg-info text-white">
+                        <FontAwesomeIcon icon={faMicroscope} className="me-2" />
+                        Text Analysis Results
+                    </div>
+                    <div className="card-body">
+                        <h5 className="card-title">Summary:</h5>
+                        <p className="card-text">{analysisResult.summary || 'No summary available.'}</p>
+                        <hr />
+                        <h5 className="card-title">Keywords:</h5>
+                        <p className="card-text">
+                            {analysisResult.keywords && analysisResult.keywords.length > 0
+                                ? analysisResult.keywords.join(', ')
+                                : 'No keywords found.'}
+                        </p>
+                        <hr />
+                        <h5 className="card-title">Sentiment:</h5>
+                        <p className="card-text">
+                            <FontAwesomeIcon icon={getSentimentIcon(analysisResult.sentiment)} className="me-2" />
+                            {analysisResult.sentiment || 'N/A'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Display Grammar Check Results */}
+            {grammarIssues.length > 0 && (
+                <div className="card shadow-sm mb-4 result-card">
+                    <div className="card-header bg-success text-white">
+                        <FontAwesomeIcon icon={faSpellCheck} className="me-2" />
+                        Grammar Check Results ({grammarIssues.length} Issues)
+                    </div>
+                    <div className="card-body">
+                        {grammarIssues.map((issue, index) => (
+                            <div key={index} className="mb-3 p-3 border rounded bg-light">
+                                <p className="mb-1"><strong>Issue:</strong> {issue.message}</p>
+                                <p className="mb-1"><strong>Suggestions:</strong> {issue.replacements.length > 0 ? issue.replacements.join(', ') : 'No suggestions.'}</p>
+                                <p className="mb-0 text-muted small"><strong>Context:</strong> "{issue.context}"</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {grammarIssues.length === 0 && !loading && !error && inputText.trim() && grammarIssues !== null && (
+                <div className="alert alert-success text-center mb-4" role="alert">
+                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                    No grammar issues found! Your text looks great.
+                </div>
+            )}
+
+
+            {/* Display Plagiarism Check Results */}
+            {plagiarismResult && (
+                <div className="card shadow-sm mb-4 result-card">
+                    <div className="card-header bg-warning text-white">
+                        <FontAwesomeIcon icon={faCopy} className="me-2" />
+                        Plagiarism Check Results
+                    </div>
+                    <div className="card-body">
+                        <p className="card-text">
+                            <strong>Plagiarism Score:</strong> {plagiarismResult.plagiarism_score}%
+                        </p>
+                        <p className="card-text">
+                            <strong>Status:</strong> {plagiarismResult.status}
+                        </p>
+                        <p className="card-text">
+                            <strong>Matched Source:</strong> {plagiarismResult.matched_source}
+                        </p>
+                        <p className="card-text text-muted small">
+                            <FontAwesomeIcon icon={faLightbulb} className="me-1" />
+                            {plagiarismResult.note}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

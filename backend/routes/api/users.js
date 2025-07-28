@@ -5,8 +5,24 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const { check, validationResult } = require('express-validator');
-const auth = require('../../middleware/auth');
+const auth = require('../../middleware/auth'); // Your authentication middleware
 const User = require('../../models/User');
+
+// Assuming you have an authorization middleware that checks for roles.
+// If you don't have one, you might need to create it.
+// For example:
+const authorize = (roles = []) => {
+    if (typeof roles === 'string') {
+        roles = [roles];
+    }
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ msg: 'Access denied. You do not have sufficient permissions.' });
+        }
+        next();
+    };
+};
+
 
 // @route   POST api/users
 // @desc    Register a new user
@@ -36,7 +52,7 @@ router.post(
                 username,
                 email,
                 password,
-                role,
+                role, // Ensure role is being passed in if needed for registration
             });
 
             const salt = await bcrypt.genSalt(10);
@@ -65,6 +81,20 @@ router.post(
         }
     }
 );
+
+// @route   GET api/users
+// @desc    Get all users (for admin panel)
+// @access  Private/Admin
+router.get('/', auth, authorize(['admin']), async (req, res) => {
+    try {
+        const users = await User.find().select('-password'); // Exclude passwords
+        res.json(users);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 
 // @route   GET api/users/profile
 // @desc    Get a user's profile
