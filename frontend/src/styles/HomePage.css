@@ -129,3 +129,24 @@
 .container.my-5 .list-group {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
+
+/* frontend/src/styles/HomePage.css */
+
+/* ... (Keep all existing styles for hero, thesis list, etc.) ... */
+
+/* NEW: Styles for feature cards */
+.feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.clickable-feature-card {
+    cursor: pointer;
+    /* Indicates it's clickable */
+}
+
+.clickable-feature-card:hover {
+    transform: translateY(-5px);
+    /* Lifts the card slightly on hover */
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15) !important;
+    /* Stronger shadow on hover */
+}

@@ -9,13 +9,18 @@ import {
     faCalendar,
     faUpload,
     faChevronLeft,
-    faChevronRight
+    faChevronRight,
+    faDatabase,
+    faSearch,
+    faBrain,
+    faChartLine, // NEW: Import for Analytics icon
+    faHistory,   // NEW: Import for Version Control icon
 } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSearch } from '../context/SearchContext.jsx';
 import SearchResultPage from './SearchResultPage';
-import '../styles/HomePage.css'; // Ensure this is imported
+import '../styles/HomePage.css';
 
 // Define how many theses to show per page for public list
 const THESES_PER_PAGE_HOME = 5;
@@ -23,6 +28,7 @@ const THESES_PER_PAGE_HOME = 5;
 const HomePage = () => {
     const { user } = useAuth();
     const { searchQuery } = useSearch();
+    const navigate = useNavigate();
 
     const [theses, setTheses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -77,6 +83,10 @@ const HomePage = () => {
         setCurrentPage(prevPage => Math.max(prevPage - 1, 1));
     };
 
+    const handleFeatureClick = () => {
+        navigate('/ai-analysis'); // Redirect to the AI Analysis page (all features go here for now)
+    };
+
     if (loading && !searchQuery) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -117,7 +127,7 @@ const HomePage = () => {
                 ) : (
                     <>
                         <h2 className="text-center mb-4 text-primary">Recent Submissions</h2>
-                        <div className="list-group thesis-list-vertical"> {/* New container for vertical list */}
+                        <div className="list-group thesis-list-vertical">
                             {currentThesesToDisplay.length > 0 ? (
                                 currentThesesToDisplay.map((thesis) => (
                                     <Link
@@ -125,17 +135,16 @@ const HomePage = () => {
                                         key={thesis._id}
                                         className="list-group-item list-group-item-action public-thesis-line-item"
                                     >
-                                        {/* Details displayed in line using spans */}
                                         <span className="thesis-title">{thesis.title}</span>
-                                        <span className="thesis-author d-none d-md-inline"> {/* Hide on small screens */}
+                                        <span className="thesis-author d-none d-md-inline">
                                             <FontAwesomeIcon icon={faUser} className="me-1" />
                                             By: {thesis.authorName}
                                         </span>
-                                        <span className="thesis-department d-none d-lg-inline"> {/* Hide on medium/small screens */}
+                                        <span className="thesis-department d-none d-lg-inline">
                                             <FontAwesomeIcon icon={faBuilding} className="me-1" />
                                             Dept: {thesis.department}
                                         </span>
-                                        <span className="thesis-year ms-auto"> {/* Pushes to the right */}
+                                        <span className="thesis-year ms-auto">
                                             <FontAwesomeIcon icon={faCalendar} className="me-1" />
                                             {thesis.submissionYear}
                                         </span>
@@ -173,6 +182,86 @@ const HomePage = () => {
                     </>
                 )}
             </div>
+
+            {/* Key Features Section */}
+            {!searchQuery && (
+                <section className="key-features container my-5 py-4">
+                    <h2 className="text-center mb-5 text-primary fw-bold">Key Features</h2>
+                    <div className="row justify-content-center">
+
+                        {/* Feature 1: Centralized Repository */}
+                        <div className="col-md-4 mb-4">
+                            <div
+                                className="card h-100 feature-card text-center shadow-sm border-0 clickable-feature-card"
+                                onClick={handleFeatureClick}
+                            >
+                                <div className="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                                    <FontAwesomeIcon icon={faDatabase} size="3x" className="text-info mb-3" />
+                                    <h5 className="card-title fw-bold mb-2">Centralized Repository</h5>
+                                    <p className="card-text text-muted">A single, organized hub for all academic theses, making knowledge easily accessible.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feature 2: Streamlined Submission */}
+                        <div className="col-md-4 mb-4">
+                            <div
+                                className="card h-100 feature-card text-center shadow-sm border-0 clickable-feature-card"
+                                onClick={handleFeatureClick}
+                            >
+                                <div className="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                                    <FontAwesomeIcon icon={faUpload} size="3x" className="text-success mb-3" />
+                                    <h5 className="card-title fw-bold mb-2">Streamlined Submission</h5>
+                                    <p className="card-text text-muted">An intuitive and guided process to upload and manage your research work effortlessly.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feature 3: Powerful Search */}
+                        <div className="col-md-4 mb-4">
+                            <div
+                                className="card h-100 feature-card text-center shadow-sm border-0 clickable-feature-card"
+                                onClick={handleFeatureClick}
+                            >
+                                <div className="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                                    <FontAwesomeIcon icon={faSearch} size="3x" className="text-warning mb-3" />
+                                    <h5 className="card-title fw-bold mb-2">Powerful Search Engine</h5>
+                                    <p className="card-text text-muted">Quickly find relevant theses with advanced filtering and keyword search capabilities.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* NEW FEATURE 4: Smart Analytics & Insights */}
+                        <div className="col-md-4 mb-4">
+                            <div
+                                className="card h-100 feature-card text-center shadow-sm border-0 clickable-feature-card"
+                                onClick={handleFeatureClick}
+                            >
+                                <div className="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                                    <FontAwesomeIcon icon={faChartLine} size="3x" className="text-danger mb-3" />
+                                    <h5 className="card-title fw-bold mb-2">Smart Analytics & Insights</h5>
+                                    <p className="card-text text-muted">Gain valuable insights from thesis data with AI-powered analytics and visualizations.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* NEW FEATURE 5: Comprehensive Version Control */}
+                        <div className="col-md-4 mb-4">
+                            <div
+                                className="card h-100 feature-card text-center shadow-sm border-0 clickable-feature-card"
+                                onClick={handleFeatureClick}
+                            >
+                                <div className="card-body d-flex flex-column align-items-center justify-content-center p-4">
+                                    <FontAwesomeIcon icon={faHistory} size="3x" className="text-primary mb-3" />
+                                    <h5 className="card-title fw-bold mb-2">Comprehensive Version Control</h5>
+                                    <p className="card-text text-muted">Track changes and manage different versions of submitted theses for accuracy and preservation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+            )}
         </>
     );
 };
