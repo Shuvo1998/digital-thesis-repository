@@ -6,12 +6,56 @@ const role = require('../../middleware/role');
 const Thesis = require('../../models/Thesis');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const pdf = require('pdf-parse');
 const { check, validationResult } = require('express-validator');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+require('dotenv').config();
+
+// --- AI API Configuration ---
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+    console.error("GEMINI_API_KEY is not set. AI analysis will not work.");
+}
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+// --- Helper function to call the AI model ---
+const getAIAnalysis = async (text) => {
+    console.log("Starting real AI analysis...");
+
+    const prompt = `Analyze the following thesis text. Please provide your response in a single JSON object with three keys: 'summary' (a concise summary of max 200 words), 'keywords' (an array of 5-10 relevant keywords), and 'sentiment' (a single string: 'Positive', 'Neutral', or 'Negative'). Do not include any other text or formatting outside of the JSON object.
+
+    Text: ${text}`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const responseText = await result.response.text();
+
+        let jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const analysis = JSON.parse(jsonString);
+
+        console.log("AI analysis finished.");
+        return analysis;
+    } catch (aiError) {
+        console.error("Error during AI analysis:", aiError);
+        return {
+            summary: 'AI analysis failed.',
+            keywords: [],
+            sentiment: 'Failed'
+        };
+    }
+};
 
 // Configure Multer for file storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, `${Date.now()}-${file.originalname}`);
@@ -51,6 +95,9 @@ router.post(
 
             const { title, abstract, authorName, department, submissionYear, supervisor, keywords } = req.body;
 
+            // Corrected file path storage: save only the relative path
+            const relativeFilePath = path.join('uploads', req.file.filename);
+
             const newThesis = new Thesis({
                 user: req.user.id,
                 title,
@@ -60,11 +107,43 @@ router.post(
                 submissionYear,
                 supervisor,
                 keywords: keywords.split(',').map(keyword => keyword.trim()),
-                filePath: req.file.path,
+                filePath: relativeFilePath, // Store the relative path
                 fileName: req.file.originalname,
+                analysisStatus: 'pending'
             });
 
             await newThesis.save();
+
+            // Trigger AI analysis asynchronously after saving the thesis
+            (async () => {
+                try {
+                    // Correctly construct the absolute path from the relative path
+                    const pdfPath = path.join(__dirname, '../../', newThesis.filePath);
+                    if (!fs.existsSync(pdfPath)) {
+                        console.error(`PDF file not found for analysis: ${pdfPath}`);
+                        newThesis.analysisStatus = 'failed';
+                        await newThesis.save();
+                        return;
+                    }
+
+                    const dataBuffer = fs.readFileSync(pdfPath);
+                    const pdfData = await pdf(dataBuffer);
+                    const fullText = pdfData.text;
+
+                    const aiResults = await getAIAnalysis(fullText);
+
+                    newThesis.aiSummary = aiResults.summary;
+                    newThesis.aiKeywords = aiResults.keywords;
+                    newThesis.aiSentiment = aiResults.sentiment;
+                    newThesis.analysisStatus = 'complete';
+                    await newThesis.save();
+                    console.log(`AI analysis completed for thesis: ${newThesis._id}`);
+                } catch (aiErr) {
+                    console.error(`Error during background AI analysis for thesis ${newThesis._id}:`, aiErr.message);
+                    newThesis.analysisStatus = 'failed';
+                    await newThesis.save();
+                }
+            })();
 
             res.status(201).json(newThesis);
 

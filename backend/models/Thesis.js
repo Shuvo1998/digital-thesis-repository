@@ -1,3 +1,5 @@
+// backend/models/Thesis.js
+
 const mongoose = require('mongoose');
 
 const ThesisSchema = new mongoose.Schema({
@@ -49,6 +51,24 @@ const ThesisSchema = new mongoose.Schema({
     date: {
         type: Date,
         default: Date.now
+    },
+    // --- New fields for AI Analysis ---
+    aiSummary: {
+        type: String,
+        required: false,
+    },
+    aiKeywords: {
+        type: [String], // Storing AI-generated keywords as an array
+        required: false,
+    },
+    aiSentiment: {
+        type: String, // e.g., 'Positive', 'Neutral', 'Negative'
+        required: false,
+    },
+    analysisStatus: {
+        type: String,
+        enum: ['pending', 'complete', 'failed'],
+        default: 'pending',
     }
 });
 
