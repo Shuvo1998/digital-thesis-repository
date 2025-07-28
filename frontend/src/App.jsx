@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
 import ThesisToolsPage from './pages/ThesisToolsPage'; // New: Import the ThesisTools Page
 import ErrorBoundary from './components/ErrorBoundary'; // New: Import ErrorBoundary  
+import SearchResultPage from './pages/SearchResultPage'; // New: Import SearchResultPage
 // Temporarily removed global styles to check the page structure.
 import './App.css';
 import './index.css';
@@ -47,6 +48,7 @@ const App = () => {
             <main className="content-wrapper">
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/search-result" element={<SearchResultPage />} /> {/* New: Route for SearchResultPage */}
 
                 {/* Public Only Routes */}
                 <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />

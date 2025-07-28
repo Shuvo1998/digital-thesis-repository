@@ -1,3 +1,4 @@
+// frontend/src/pages/HomePage.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,17 +7,21 @@ import {
     faUser,
     faBuilding,
     faCalendar,
-    faUpload
+    faUpload,
+    faChevronLeft,
+    faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useSearch } from '../context/SearchContext.jsx'; // Import useSearch context
-import SearchResultPage from './SearchResultPage';// Import the SearchResultPage component
-import '../styles/HomePage.css';
+import { useSearch } from '../context/SearchContext.jsx';
+import SearchResultPage from './SearchResultPage';
+import '../styles/HomePage.css'; // Ensure this is imported
+
+// Define how many theses to show per page for public list
+const THESES_PER_PAGE_HOME = 5;
 
 const HomePage = () => {
     const { user } = useAuth();
-    // Get searchQuery and searchResults from the SearchContext
     const { searchQuery } = useSearch();
 
     const [theses, setTheses] = useState([]);
@@ -25,15 +30,16 @@ const HomePage = () => {
     const [heroText, setHeroText] = useState('Explore and Contribute');
     const heroPhrases = ['Discover Knowledge', 'Share Your Research', 'Connect with Academia'];
 
-    // This useEffect handles fetching recent theses and the hero text animation
+    const [currentPage, setCurrentPage] = useState(1);
+
     useEffect(() => {
-        // Only fetch recent theses if there is no active search query
         if (!searchQuery) {
             const fetchTheses = async () => {
                 try {
                     const response = await axios.get('http://localhost:5000/api/theses');
                     setTheses(response.data);
                     setLoading(false);
+                    setCurrentPage(1);
                 } catch (err) {
                     console.error('Error fetching theses:', err);
                     setError('Failed to fetch theses. Please try again later.');
@@ -42,12 +48,11 @@ const HomePage = () => {
             };
             fetchTheses();
         } else {
-            // If a search query is active, we don't need to show the "Recent Submissions" loading state
             setLoading(false);
-            setError(null); // Clear any old errors from recent theses fetch
+            setError(null);
+            setCurrentPage(1);
         }
 
-        // Hero text animation
         const intervalId = setInterval(() => {
             setHeroText(prevText => {
                 const currentPhraseIndex = heroPhrases.indexOf(prevText);
@@ -56,11 +61,22 @@ const HomePage = () => {
             });
         }, 3000);
 
-        // Cleanup function for the interval
         return () => clearInterval(intervalId);
-    }, [searchQuery]); // Re-run this effect if the searchQuery changes
+    }, [searchQuery]);
 
-    // Conditional rendering for initial loading or error of recent theses
+    const indexOfLastThesis = currentPage * THESES_PER_PAGE_HOME;
+    const indexOfFirstThesis = indexOfLastThesis - THESES_PER_PAGE_HOME;
+    const currentThesesToDisplay = theses.slice(indexOfFirstThesis, indexOfLastThesis);
+    const totalPages = Math.ceil(theses.length / THESES_PER_PAGE_HOME);
+
+    const goToNextPage = () => {
+        setCurrentPage(prevPage => Math.min(prevPage + 1, totalPages));
+    };
+
+    const goToPrevPage = () => {
+        setCurrentPage(prevPage => Math.max(prevPage - 1, 1));
+    };
+
     if (loading && !searchQuery) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -96,43 +112,64 @@ const HomePage = () => {
             </div>
 
             <div className="container my-5">
-                {/* Conditional Rendering:
-                    If searchQuery has a value (meaning a search has been performed),
-                    render the SearchResultPage.
-                    Otherwise, render the Recent Submissions section.
-                */}
                 {searchQuery ? (
                     <SearchResultPage />
                 ) : (
                     <>
                         <h2 className="text-center mb-4 text-primary">Recent Submissions</h2>
-                        <div className="thesis-list-container">
-                            {theses.length > 0 ? (
-                                theses.map((thesis) => (
-                                    <Link to={`/thesis/${thesis._id}`} key={thesis._id} className="thesis-list-item d-block text-decoration-none">
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <h5 className="mb-0">{thesis.title}</h5>
-                                            <small className="text-muted">
-                                                <FontAwesomeIcon icon={faCalendar} className="me-1" />
-                                                {thesis.submissionYear}
-                                            </small>
-                                        </div>
-                                        <small className="text-muted d-block mb-1">
+                        <div className="list-group thesis-list-vertical"> {/* New container for vertical list */}
+                            {currentThesesToDisplay.length > 0 ? (
+                                currentThesesToDisplay.map((thesis) => (
+                                    <Link
+                                        to={`/thesis/${thesis._id}`}
+                                        key={thesis._id}
+                                        className="list-group-item list-group-item-action public-thesis-line-item"
+                                    >
+                                        {/* Details displayed in line using spans */}
+                                        <span className="thesis-title">{thesis.title}</span>
+                                        <span className="thesis-author d-none d-md-inline"> {/* Hide on small screens */}
                                             <FontAwesomeIcon icon={faUser} className="me-1" />
                                             By: {thesis.authorName}
-                                        </small>
-                                        <small className="text-muted d-block">
+                                        </span>
+                                        <span className="thesis-department d-none d-lg-inline"> {/* Hide on medium/small screens */}
                                             <FontAwesomeIcon icon={faBuilding} className="me-1" />
-                                            Department: {thesis.department}
-                                        </small>
+                                            Dept: {thesis.department}
+                                        </span>
+                                        <span className="thesis-year ms-auto"> {/* Pushes to the right */}
+                                            <FontAwesomeIcon icon={faCalendar} className="me-1" />
+                                            {thesis.submissionYear}
+                                        </span>
                                     </Link>
                                 ))
                             ) : (
-                                <div className="text-center text-muted p-5">
+                                <div className="text-center text-muted p-5 w-100">
                                     <p>No theses have been uploaded yet.</p>
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {theses.length > THESES_PER_PAGE_HOME && (
+                            <div className="d-flex justify-content-between align-items-center mt-4 p-3 border-top">
+                                <button
+                                    className="btn btn-outline-primary"
+                                    onClick={goToPrevPage}
+                                    disabled={currentPage === 1}
+                                >
+                                    <FontAwesomeIcon icon={faChevronLeft} className="me-2" /> Previous Page
+                                </button>
+                                <span className="text-muted fw-bold">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    className="btn btn-outline-primary"
+                                    onClick={goToNextPage}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Next Page <FontAwesomeIcon icon={faChevronRight} className="ms-2" />
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

@@ -1,156 +1,88 @@
 /* frontend/src/styles/DashboardPage.css */
 
-/* Base container styling, similar to other pages */
-.container.mt-5 {
-    padding-bottom: 3rem;
+/* Horizontal view for thesis cards */
+.thesis-cards-horizontal {
+    display: flex;
+    flex-wrap: nowrap;
+    /* Prevent items from wrapping to the next line */
+    overflow-x: auto;
+    /* Allow horizontal scrolling if items exceed container width */
+    gap: 1rem;
+    /* Space between the cards */
+    padding-bottom: 1rem;
+    /* Provide space for the scrollbar if it appears */
+    scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: #007bff #f0f2f5;
+    /* Firefox */
 }
 
-/* --- Default Light Theme Styles --- */
-.card.shadow-sm {
-    background-color: #ffffff;
-    color: #343a40;
-    border: 1px solid #e9ecef;
-    border-radius: 0.75rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05) !important;
+/* Custom scrollbar for Webkit browsers (Chrome, Safari) */
+.thesis-cards-horizontal::-webkit-scrollbar {
+    height: 8px;
+    /* Height of the horizontal scrollbar */
 }
 
-.card-title {
-    color: #4f5a65;
-    font-weight: 700;
+.thesis-cards-horizontal::-webkit-scrollbar-track {
+    background: #f0f2f5;
+    /* Track color */
+    border-radius: 10px;
 }
 
-.card-body p {
-    color: #6c757d;
-}
-
-.card-body h5.text-primary {
-    color: #007bff !important;
-}
-
-/* Individual Thesis Card Styling */
-.card.h-100 {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    border: 1px solid #e9ecef;
-}
-
-.card.h-100:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.75rem 1.75rem rgba(0, 0, 0, 0.1) !important;
-}
-
-.card.h-100 .card-title {
-    color: #007bff;
-    font-weight: 600;
-}
-
-.card.h-100 .card-text {
-    font-size: 0.9rem;
-}
-
-/* Custom button styling */
-.btn-primary {
+.thesis-cards-horizontal::-webkit-scrollbar-thumb {
     background-color: #007bff;
-    border-color: #007bff;
-    font-weight: bold;
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    /* Thumb color */
+    border-radius: 10px;
+    border: 2px solid #f0f2f5;
+    /* Padding around thumb */
 }
 
-.btn-primary:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
-    transform: translateY(-1px);
+
+.thesis-card-item {
+    /* Each item takes up 1/5th of the container width minus the gap */
+    flex: 0 0 calc((100% / 5) - 0.8rem);
+    /* 0.8rem is roughly 1rem gap distributed for 5 items */
+    max-width: calc((100% / 5) - 0.8rem);
+    min-width: 200px;
+    /* Ensures cards don't get too small on wider screens */
+    margin-bottom: 1rem;
+    /* Add some vertical margin, useful if they wrap on smaller screens */
 }
 
-/* Status Colors (Bootstrap default classes) */
-.text-warning {
-    color: #ffc107 !important;
+/* Adjustments for smaller screens (e.g., tablets and mobile) */
+@media (max-width: 992px) {
+
+    /* Adjust breakpoint as needed, e.g., Bootstrap's lg breakpoint */
+    .thesis-card-item {
+        flex: 0 0 calc((100% / 3) - 0.7rem);
+        /* Show 3 cards per row */
+        max-width: calc((100% / 3) - 0.7rem);
+    }
 }
 
-.text-success {
-    color: #28a745 !important;
+@media (max-width: 768px) {
+
+    /* Bootstrap's md breakpoint */
+    .thesis-card-item {
+        flex: 0 0 calc((100% / 2) - 0.5rem);
+        /* Show 2 cards per row */
+        max-width: calc((100% / 2) - 0.5rem);
+    }
 }
 
-.text-danger {
-    color: #dc3545 !important;
+@media (max-width: 576px) {
+
+    /* Bootstrap's sm breakpoint */
+    .thesis-card-item {
+        flex: 0 0 100%;
+        /* Show 1 card per row on very small screens */
+        max-width: 100%;
+    }
 }
 
-.text-primary {
-    color: #007bff !important;
-}
-
-.text-secondary {
-    color: #6c757d !important;
-}
-
-/* --- Dark Theme Overrides --- */
-.dark-theme .card.shadow-sm {
-    background-color: #2e2f33;
-    /* Dark card background */
-    color: #e8eaed;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.3) !important;
-}
-
-.dark-theme .card-title {
-    color: #e8eaed;
-}
-
-.dark-theme .card-body p {
-    color: #b7b9be;
-    /* Lighter text for contrast */
-}
-
-.dark-theme .card-body h5.text-primary {
-    color: #8ab4f8 !important;
-    /* Gemini blue */
-}
-
-/* Individual Thesis Card Styling for Dark Theme */
-.dark-theme .card.h-100 {
-    background-color: #3e3f42;
-    /* Slightly lighter than main card */
-    border: 1px solid #5f6368;
-}
-
-.dark-theme .card.h-100:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.75rem 1.75rem rgba(0, 0, 0, 0.5) !important;
-}
-
-.dark-theme .card.h-100 .card-title {
-    color: #8ab4f8;
-    /* Gemini blue */
-}
-
-.dark-theme .btn-primary {
-    background-color: #8ab4f8;
-    border-color: #8ab4f8;
-    color: #202124;
-}
-
-.dark-theme .btn-primary:hover {
-    background-color: #a5c3f8;
-    border-color: #a5c3f8;
-    color: #202124;
-}
-
-/* Status Colors for Dark Theme */
-.dark-theme .text-warning {
-    color: #fccf00 !important;
-}
-
-.dark-theme .text-success {
-    color: #62c37e !important;
-}
-
-.dark-theme .text-danger {
-    color: #ff6060 !important;
-}
-
-.dark-theme .text-primary {
-    color: #8ab4f8 !important;
-}
-
-.dark-theme .text-secondary {
-    color: #9aa0a6 !important;
+/* General dashboard card styling, can be added here or in App.css */
+.dashboard-content-card {
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(145deg, #ffffff, #f0f2f5);
 }

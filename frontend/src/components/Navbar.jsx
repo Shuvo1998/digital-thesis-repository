@@ -34,7 +34,7 @@ const Navbar = () => {
         e.preventDefault();
         if (searchQuery.trim()) {
             handleSearch(searchQuery.trim()); // Call the new async search function from context
-            navigate('/'); // Navigate to the home page to show results
+            navigate('/search-result'); // Navigate to the home page to show results
             // Don't clear searchQuery here, let the user see what they searched for
             setIsMobileMenuOpen(false);
         }
