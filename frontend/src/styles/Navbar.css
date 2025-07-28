@@ -17,6 +17,12 @@
 
 /* Sticky State (after scroll) */
 .navbar.sticky {
+    position: fixed;
+    /* Key: Makes the navbar stick to the viewport */
+    top: 0;
+    /* Key: Positions it at the very top */
+    width: 100%;
+    /* Key: Ensures it spans the full width */
     background-color: #ffffff;
     padding: 0.75rem 0;
     box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);

@@ -1,8 +1,11 @@
 /* frontend/src/index.css */
 
-
 /* Add your other global styles below these lines */
 body {
   /* You can set a global font here, for example */
   font-family: 'Roboto', sans-serif;
+
+  /* Temporary: Set a dark background color for the body */
+  background-color: #343a40 !important;
+  /* !important to override Bootstrap's body background */
 }

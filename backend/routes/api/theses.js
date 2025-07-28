@@ -9,37 +9,27 @@ const path = require('path');
 const fs = require('fs');
 const pdf = require('pdf-parse');
 const { check, validationResult } = require('express-validator');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+const axios = require('axios');
 
-// --- AI API Configuration ---
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY is not set. AI analysis will not work.");
-}
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// --- AI Service Configuration ---
+const AI_SERVICE_BASE_URL = 'http://127.0.0.1:5001'; // Base URL of your local Python AI service
 
-// --- Helper function to call the AI model ---
+// --- Helper function to call the AI model (for general analysis) ---
 const getAIAnalysis = async (text) => {
-    console.log("Starting real AI analysis...");
-
-    const prompt = `Analyze the following thesis text. Please provide your response in a single JSON object with three keys: 'summary' (a concise summary of max 200 words), 'keywords' (an array of 5-10 relevant keywords), and 'sentiment' (a single string: 'Positive', 'Neutral', or 'Negative'). Do not include any other text or formatting outside of the JSON object.
-
-    Text: ${text}`;
+    console.log("Starting AI analysis via local Python service...");
 
     try {
-        const result = await model.generateContent(prompt);
-        const responseText = await result.response.text();
-
-        let jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        const analysis = JSON.parse(jsonString);
+        const response = await axios.post(`${AI_SERVICE_BASE_URL}/analyze`, { text });
+        const analysis = response.data;
 
         console.log("AI analysis finished.");
         return analysis;
     } catch (aiError) {
-        console.error("Error during AI analysis:", aiError);
+        console.error("Error during AI analysis call to local service:", aiError.message);
+        if (aiError.response) {
+            console.error("AI Service Response Data:", aiError.response.data);
+            console.error("AI Service Response Status:", aiError.response.status);
+        }
         return {
             summary: 'AI analysis failed.',
             keywords: [],
@@ -95,7 +85,6 @@ router.post(
 
             const { title, abstract, authorName, department, submissionYear, supervisor, keywords } = req.body;
 
-            // Corrected file path storage: save only the relative path
             const relativeFilePath = path.join('uploads', req.file.filename);
 
             const newThesis = new Thesis({
@@ -107,7 +96,7 @@ router.post(
                 submissionYear,
                 supervisor,
                 keywords: keywords.split(',').map(keyword => keyword.trim()),
-                filePath: relativeFilePath, // Store the relative path
+                filePath: relativeFilePath,
                 fileName: req.file.originalname,
                 analysisStatus: 'pending'
             });
@@ -117,7 +106,6 @@ router.post(
             // Trigger AI analysis asynchronously after saving the thesis
             (async () => {
                 try {
-                    // Correctly construct the absolute path from the relative path
                     const pdfPath = path.join(__dirname, '../../', newThesis.filePath);
                     if (!fs.existsSync(pdfPath)) {
                         console.error(`PDF file not found for analysis: ${pdfPath}`);
@@ -153,6 +141,53 @@ router.post(
         }
     }
 );
+
+// --- New: Route for Editorial Assistant (Grammar Checker) ---
+// @route   POST api/theses/check-grammar
+// @desc    Check grammar of provided text using AI service
+// @access  Private
+router.post('/check-grammar', auth, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) {
+            return res.status(400).json({ msg: 'Text is required for grammar check.' });
+        }
+
+        const response = await axios.post(`${AI_SERVICE_BASE_URL}/check-grammar`, { text });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error calling grammar checker AI service:', error.message);
+        if (error.response) {
+            console.error("AI Service Response Data:", error.response.data);
+            console.error("AI Service Response Status:", error.response.status);
+        }
+        res.status(500).json({ msg: 'Failed to perform grammar check.' });
+    }
+});
+
+// --- New: Route for Plagiarism Scan ---
+// @route   POST api/theses/check-plagiarism
+// @desc    Perform plagiarism scan on provided text using AI service
+// @access  Private
+router.post('/check-plagiarism', auth, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) {
+            return res.status(400).json({ msg: 'Text is required for plagiarism scan.' });
+        }
+
+        const response = await axios.post(`${AI_SERVICE_BASE_URL}/check-plagiarism`, { text });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error calling plagiarism checker AI service:', error.message);
+        if (error.response) {
+            console.error("AI Service Response Data:", error.response.data);
+            console.error("AI Service Response Status:", error.response.status);
+        }
+        res.status(500).json({ msg: 'Failed to perform plagiarism scan.' });
+    }
+});
+
 
 // @route   GET api/theses
 // @desc    Get all theses

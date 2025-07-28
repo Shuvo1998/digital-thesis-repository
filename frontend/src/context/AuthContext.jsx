@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
     // Helper function to set the Authorization header for all Axios requests
     const setAuthHeader = (authToken) => {
         if (authToken) {
+            // FIX: Corrected header name to 'Authorization' with 'Bearer' prefix
             axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
         } else {
             delete axios.defaults.headers.common['Authorization'];
@@ -23,7 +24,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Helper function to load user data from the backend
-    // FIX: loadUser now accepts a token argument
     const loadUser = async (authToken) => {
         const currentToken = authToken || token;
         if (currentToken) {
@@ -41,17 +41,19 @@ export const AuthProvider = ({ children }) => {
                 Cookies.remove('token');
                 setAuthHeader(null);
                 return null;
+            } finally {
+                setLoading(false);
             }
+        } else {
+            setLoading(false);
         }
-        setLoading(false);
         return null;
     };
 
     // This effect runs on component mount and whenever the token changes
-    // It is now only responsible for initial load from cookies
     useEffect(() => {
         loadUser();
-    }, [token]);
+    }, []);
 
     // Function to handle user login
     const login = async (email, password) => {
@@ -62,11 +64,10 @@ export const AuthProvider = ({ children }) => {
 
             Cookies.set('token', newToken, { expires: 7 });
             setToken(newToken);
-            setAuthHeader(newToken);
-            setIsAuthenticated(true);
 
-            // FIX: Pass the newToken directly to loadUser
+            // Note: setAuthHeader will be called implicitly via the loadUser call below
             const loadedUser = await loadUser(newToken);
+            setIsAuthenticated(true);
 
             return { success: true, user: loadedUser };
         } catch (err) {
@@ -83,17 +84,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (username, email, password) => {
+        setLoading(true);
         try {
             const registerRes = await axios.post('http://localhost:5000/api/users', { username, email, password });
             const newToken = registerRes.data.token;
 
             Cookies.set('token', newToken, { expires: 7 });
             setToken(newToken);
-            setAuthHeader(newToken);
-            setIsAuthenticated(true);
 
-            // FIX: Pass the newToken directly to loadUser
+            // Note: setAuthHeader will be called implicitly via the loadUser call below
             const loadedUser = await loadUser(newToken);
+            setIsAuthenticated(true);
 
             return { success: true, user: loadedUser };
         } catch (err) {
@@ -104,6 +105,8 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             setIsAuthenticated(false);
             return { success: false, error: err.response?.data?.errors?.[0]?.msg || 'Registration failed', user: null };
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -114,6 +117,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
         Cookies.remove('token');
         setAuthHeader(null);
+        setLoading(false);
     };
 
     // Value provided to consumers of the context

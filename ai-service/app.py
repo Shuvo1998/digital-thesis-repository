@@ -1,11 +1,9 @@
-# ai-service/app.py
-
 import spacy
 from textblob import TextBlob
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import language_tool_python # New: Import for grammar checking
-from difflib import SequenceMatcher # New: For conceptual plagiarism check
+import language_tool_python
+from difflib import SequenceMatcher
 
 # Load the spaCy and TextBlob models
 nlp = spacy.load("en_core_web_sm")
@@ -79,9 +77,9 @@ def check_grammar():
                 'message': match.message,
                 'replacements': match.replacements,
                 'offset': match.offset,
-                'length': match.errorlength,
+                'length': match.errorLength, # Corrected here: errorLength with a capital 'L'
                 'ruleId': match.ruleId,
-                'context': text[max(0, match.offset - 20):match.offset + match.errorlength + 20] # Show context around the error
+                'context': text[max(0, match.offset - 20):match.offset + match.errorLength + 20] # Show context around the error
             })
 
         return jsonify({'issues': grammar_issues})

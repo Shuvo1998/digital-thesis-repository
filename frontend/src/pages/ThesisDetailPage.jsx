@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileAlt, faUser, faBuilding, faCalendar, faDownload, faClock, faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import { faFileAlt, faUser, faBuilding, faCalendar, faDownload, faClock, faCheckCircle, faTimesCircle, faSmile, faMeh, faFrown } from '@fortawesome/free-solid-svg-icons'; // New icons for sentiment
 
 const ThesisDetailPage = () => {
     const { id } = useParams();
@@ -55,6 +55,19 @@ const ThesisDetailPage = () => {
         }
     };
 
+    const getSentimentInfo = (sentiment) => {
+        switch (sentiment) {
+            case 'Positive':
+                return { icon: faSmile, color: 'text-success' };
+            case 'Neutral':
+                return { icon: faMeh, color: 'text-warning' };
+            case 'Negative':
+                return { icon: faFrown, color: 'text-danger' };
+            default:
+                return { icon: faMeh, color: 'text-secondary' };
+        }
+    };
+
     if (loading) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -79,6 +92,9 @@ const ThesisDetailPage = () => {
         );
     }
 
+    const { icon: sentimentIcon, color: sentimentColor } = getSentimentInfo(thesis.aiSentiment);
+    const formattedStatus = thesis.status ? thesis.status.charAt(0).toUpperCase() + thesis.status.slice(1) : 'Not Available';
+
     return (
         <div className="container mt-5">
             <div className="card shadow-lg p-4">
@@ -100,15 +116,57 @@ const ThesisDetailPage = () => {
                         </p>
                         <p className={`card-text fw-bold ${getStatusColor(thesis.status)} mt-3`}>
                             {getStatusIcon(thesis.status)}
-                            Status: {thesis.status.charAt(0).toUpperCase() + thesis.status.slice(1)}
+                            Status: {formattedStatus}
                         </p>
                     </div>
+
                     <div className="mt-4">
-                        <h4 className="fw-bold">Abstract</h4>
+                        <h4 className="fw-bold">Original Abstract</h4>
                         <p className="card-text">{thesis.abstract}</p>
                     </div>
+
+                    {/* --- New AI Analysis Section --- */}
+                    <hr className="my-4" />
+                    {thesis.analysisStatus === 'complete' ? (
+                        <div className="ai-analysis-section">
+                            <h3 className="text-primary fw-bold mb-3">AI Analysis</h3>
+
+                            <div className="mt-3">
+                                <h4 className="fw-bold">AI-Generated Summary</h4>
+                                <p className="card-text">{thesis.aiSummary || 'Summary not available.'}</p>
+                            </div>
+
+                            <div className="mt-4">
+                                <h4 className="fw-bold">Keywords</h4>
+                                <div className="d-flex flex-wrap">
+                                    {thesis.aiKeywords && thesis.aiKeywords.length > 0 ? (
+                                        thesis.aiKeywords.map((keyword, index) => (
+                                            <span key={index} className="badge bg-secondary text-light me-2 mb-2 p-2">
+                                                {keyword}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <p className="text-muted">No keywords found.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <h4 className="fw-bold">Sentiment</h4>
+                                <p className={`card-text fw-bold ${sentimentColor}`}>
+                                    <FontAwesomeIcon icon={sentimentIcon} className="me-2" />
+                                    {thesis.aiSentiment || 'Sentiment not available.'}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="alert alert-info text-center mt-4">
+                            AI analysis is currently **{thesis.analysisStatus}**. Please check back later.
+                        </div>
+                    )}
+
                     <div className="mt-4">
-                        <a href={`http://localhost:5000/uploads/${thesis.fileName}`} target="_blank" rel="noopener noreferrer" className="btn btn-success btn-lg">
+                        <a href={`http://localhost:5000/${thesis.filePath}`} target="_blank" rel="noopener noreferrer" className="btn btn-success btn-lg">
                             <FontAwesomeIcon icon={faDownload} className="me-2" />
                             Download PDF
                         </a>

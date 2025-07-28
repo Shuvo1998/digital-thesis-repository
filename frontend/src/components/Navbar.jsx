@@ -14,7 +14,8 @@ import {
     faUserShield,
     faUsers,
     faCaretDown,
-    faEdit
+    faEdit,
+    faTools // New: Import for Thesis Tools icon
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/Navbar.css';
 
@@ -144,6 +145,13 @@ const Navbar = () => {
                                         </NavLink>
                                     </li>
                                 )}
+
+                                {/* New: Thesis Tools Page Link */}
+                                <li className="nav-item me-lg-2">
+                                    <NavLink to="/thesis-tools" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <FontAwesomeIcon icon={faTools} className="me-1" />Thesis Tools
+                                    </NavLink>
+                                </li>
 
                                 <li className="nav-item dropdown" ref={profileDropdownRef}>
                                     <button
