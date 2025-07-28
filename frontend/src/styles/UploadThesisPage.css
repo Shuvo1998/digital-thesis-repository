@@ -1,57 +1,141 @@
 /* frontend/src/styles/UploadThesisPage.css */
+
+.upload-page-container {
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+}
+
 .upload-card {
+    background-color: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    background: #fdfdfd;
 }
 
-.upload-header {
+.upload-card-header {
+    background-color: transparent;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 1.75rem;
+    font-weight: 700;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    color: #495057;
     text-align: center;
-    margin-bottom: 2rem;
-    padding-top: 1rem;
 }
 
-.upload-header .fa-upload {
-    color: #007bff;
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-}
-
-.upload-header h2 {
-    font-size: 2rem;
-    font-weight: 300;
-    color: #343a40;
-}
-
-.form-group label {
+.form-label {
     font-weight: 600;
     color: #495057;
-}
-
-.input-group-text {
-    background-color: #e9ecef;
-    border-right: none;
+    margin-bottom: 0.5rem;
+    display: block;
 }
 
 .form-control,
 .form-select {
-    border-left: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #f8f9fa;
+    color: #343a40;
+    border: 1px solid #ced4da;
 }
 
 .form-control:focus,
 .form-select:focus {
+    border-color: #80bdff;
     box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    background-color: #fff;
+    color: #343a40;
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+}
+
+.upload-button {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #007bff;
     border-color: #007bff;
-}
-
-.btn-primary.btn-lg {
-    font-size: 1.25rem;
+    color: #fff;
+    font-weight: 500;
     padding: 0.75rem 1.5rem;
-    border-radius: 50px;
-    transition: transform 0.2s;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
 }
 
-.btn-primary.btn-lg:hover {
-    transform: translateY(-2px);
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.alert {
+    margin-top: 1.5rem;
+    border-radius: 0.5rem;
+}
+
+/* --- Dark Theme Overrides --- */
+
+.dark-theme .upload-card {
+    background-color: #2e2f33;
+    /* Dark background for the card */
+    color: #e8eaed;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+    border: none;
+}
+
+.dark-theme .upload-card-header {
+    color: #e8eaed;
+    border-bottom-color: #3e3f42;
+}
+
+.dark-theme .form-label {
+    color: #e8eaed;
+}
+
+.dark-theme .form-control,
+.dark-theme .form-select {
+    background-color: #3e3f42;
+    color: #e8eaed;
+    border-color: #5f6368;
+}
+
+.dark-theme .form-control:focus,
+.dark-theme .form-select:focus {
+    border-color: #8ab4f8;
+    box-shadow: 0 0 0 0.25rem rgba(138, 180, 248, 0.25);
+    background-color: #3e3f42;
+    color: #e8eaed;
+}
+
+.dark-theme .form-control::placeholder {
+    color: #9aa0a6;
+}
+
+.dark-theme .btn-primary {
+    background-color: #8ab4f8;
+    border-color: #8ab4f8;
+    color: #202124;
+}
+
+.dark-theme .btn-primary:hover {
+    background-color: #a5c3f8;
+    border-color: #a5c3f8;
+}
+
+.dark-theme .alert-danger {
+    background-color: #4a1719;
+    color: #ffc2c5;
+    border-color: #6f2629;
+}
+
+.dark-theme .alert-success {
+    background-color: #1a4d33;
+    color: #b7e1c8;
+    border-color: #2a6845;
 }

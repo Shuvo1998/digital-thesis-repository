@@ -68,7 +68,7 @@ const UploadThesisPage = () => {
 
         const formData = new FormData();
         formData.append('title', title);
-        formData.append('authorName', authorName); // CORRECTED: Changed 'studentName' to 'authorName'
+        formData.append('authorName', authorName);
         formData.append('department', department);
         formData.append('submissionYear', submissionYear.getFullYear());
         formData.append('abstract', abstract);
@@ -149,6 +149,7 @@ const UploadThesisPage = () => {
                                             value={authorName}
                                             onChange={(e) => setAuthorName(e.target.value)}
                                             required
+                                            disabled
                                         />
                                     </div>
                                 </div>
@@ -182,6 +183,7 @@ const UploadThesisPage = () => {
                                             required
                                             disabled={isLoadingSupervisors}
                                         >
+                                            <option value="" disabled>Select a Supervisor</option>
                                             {supervisors.map((sup) => (
                                                 <option key={sup._id} value={sup._id}>
                                                     {sup.username}
@@ -190,6 +192,7 @@ const UploadThesisPage = () => {
                                         </select>
                                     </div>
                                 </div>
+
                                 <div className="col-md-6 mb-3 form-group">
                                     <label htmlFor="submissionYear" className="form-label">Submission Year</label>
                                     <div className="input-group">
@@ -223,21 +226,6 @@ const UploadThesisPage = () => {
                             </div>
 
                             <div className="mb-4 form-group">
-                                <label htmlFor="thesisFile" className="form-label">Upload Thesis File (PDF)</label>
-                                <div className="input-group">
-                                    <span className="input-group-text"><FontAwesomeIcon icon={faFilePdf} /></span>
-                                    <input
-                                        type="file"
-                                        id="thesisFile"
-                                        className="form-control"
-                                        accept="application/pdf"
-                                        onChange={(e) => setFile(e.target.files[0])}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="mb-3 form-group">
                                 <label htmlFor="abstract" className="form-label">Abstract</label>
                                 <div className="input-group">
                                     <span className="input-group-text"><FontAwesomeIcon icon={faAlignLeft} /></span>
@@ -252,8 +240,23 @@ const UploadThesisPage = () => {
                                 </div>
                             </div>
 
+                            <div className="mb-4 form-group">
+                                <label htmlFor="thesisFile" className="form-label">Upload Thesis File (PDF)</label>
+                                <div className="input-group">
+                                    <span className="input-group-text"><FontAwesomeIcon icon={faFilePdf} /></span>
+                                    <input
+                                        type="file"
+                                        id="thesisFile"
+                                        className="form-control"
+                                        accept="application/pdf"
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
                             <div className="d-grid gap-2">
-                                <button type="submit" className="btn btn-primary btn-lg" disabled={isSubmitting}>
+                                <button type="submit" className="btn btn-primary btn-lg" disabled={isSubmitting || isLoadingSupervisors}>
                                     {isSubmitting ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>

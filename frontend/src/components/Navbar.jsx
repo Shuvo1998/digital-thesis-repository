@@ -13,18 +13,20 @@ import {
     faSearch,
     faUserShield,
     faUsers,
-    faCaretDown, // New icon for the dropdown caret
-    faEdit // New icon for Edit Profile
+    faCaretDown,
+    faEdit
 } from '@fortawesome/free-solid-svg-icons';
+import '../styles/Navbar.css';
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // NEW: State for the profile dropdown
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const navbarRef = useRef(null);
-    const profileDropdownRef = useRef(null); // NEW: Ref for the profile dropdown
+    const profileDropdownRef = useRef(null);
+    const [isSticky, setIsSticky] = useState(false);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -37,26 +39,42 @@ const Navbar = () => {
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
-        setIsProfileDropdownOpen(false); // Close profile dropdown when mobile menu is toggled
+        setIsProfileDropdownOpen(false);
     };
 
     const toggleProfileDropdown = () => {
         setIsProfileDropdownOpen(!isProfileDropdownOpen);
-        setIsMobileMenuOpen(false); // Close mobile menu when profile dropdown is toggled
+        setIsMobileMenuOpen(false);
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
     };
 
     useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 50) {
+                setIsSticky(true);
+            } else {
+                setIsSticky(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+
         const handleClickOutside = (event) => {
             if (navbarRef.current && !navbarRef.current.contains(event.target)) {
                 setIsMobileMenuOpen(false);
             }
-            // NEW: Handle clicking outside the profile dropdown
             if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
                 setIsProfileDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
+
         return () => {
+            window.removeEventListener('scroll', handleScroll);
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [navbarRef, profileDropdownRef]);
@@ -64,7 +82,7 @@ const Navbar = () => {
     const isAdminOrSupervisor = user?.role === 'admin' || user?.role === 'supervisor';
 
     return (
-        <nav ref={navbarRef} className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <nav ref={navbarRef} className={`navbar navbar-expand-lg navbar-light ${isSticky ? 'sticky' : 'transparent'}`}>
             <div className="container">
                 <NavLink to="/" className="navbar-brand d-flex align-items-center">
                     <FontAwesomeIcon icon={faGraduationCap} size="2x" className="me-2" />
@@ -87,12 +105,12 @@ const Navbar = () => {
                 >
                     <form className="d-flex mx-auto my-2 my-lg-0 w-50" onSubmit={handleSearch}>
                         <div className="input-group">
-                            <span className="input-group-text bg-light text-primary border-0">
+                            <span className="input-group-text bg-white text-primary border-0">
                                 <FontAwesomeIcon icon={faSearch} />
                             </span>
                             <input
                                 type="search"
-                                className="form-control"
+                                className="form-control border-start-0"
                                 placeholder="Search theses..."
                                 aria-label="Search"
                                 value={searchQuery}
@@ -104,7 +122,6 @@ const Navbar = () => {
                     <ul className="navbar-nav ms-auto">
                         {isAuthenticated ? (
                             <>
-                                {/* Conditional links for Admin/Supervisor */}
                                 {isAdminOrSupervisor && (
                                     <>
                                         <li className="nav-item me-lg-2">
@@ -120,7 +137,6 @@ const Navbar = () => {
                                     </>
                                 )}
 
-                                {/* Links for regular users */}
                                 {!isAdminOrSupervisor && (
                                     <li className="nav-item me-lg-2">
                                         <NavLink to="/upload-thesis" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
@@ -129,7 +145,6 @@ const Navbar = () => {
                                     </li>
                                 )}
 
-                                {/* Profile dropdown button */}
                                 <li className="nav-item dropdown" ref={profileDropdownRef}>
                                     <button
                                         className="nav-link btn btn-link dropdown-toggle"
@@ -165,7 +180,7 @@ const Navbar = () => {
                                         <button
                                             className="dropdown-item"
                                             onClick={() => {
-                                                logout();
+                                                handleLogout();
                                                 setIsProfileDropdownOpen(false);
                                                 setIsMobileMenuOpen(false);
                                             }}
@@ -178,12 +193,12 @@ const Navbar = () => {
                         ) : (
                             <>
                                 <li className="nav-item me-lg-2">
-                                    <NavLink to="/login" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <NavLink to="/login" className="nav-link btn btn-outline-primary" onClick={() => setIsMobileMenuOpen(false)}>
                                         <FontAwesomeIcon icon={faSignInAlt} className="me-1" />Login
                                     </NavLink>
                                 </li>
                                 <li className="nav-item">
-                                    <NavLink to="/register" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <NavLink to="/register" className="nav-link btn btn-primary" onClick={() => setIsMobileMenuOpen(false)}>
                                         <FontAwesomeIcon icon={faUserPlus} className="me-1" />Register
                                     </NavLink>
                                 </li>

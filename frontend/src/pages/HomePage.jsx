@@ -1,48 +1,54 @@
 // frontend/src/pages/HomePage.jsx
 import React, { useState, useEffect } from 'react';
-import { getPublicTheses } from '../api/thesisApi';
+import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGraduationCap, faUpload } from '@fortawesome/free-solid-svg-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+    faSpinner,
+    faUser,
+    faBuilding,
+    faCalendar,
+    faUpload
+} from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import '../styles/HomePage.css';
 
 const HomePage = () => {
+    const { user } = useAuth();
     const [theses, setTheses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const { isAuthenticated } = useAuth();
-    const navigate = useNavigate();
+    const [heroText, setHeroText] = useState('Explore and Contribute');
+    const heroPhrases = ['Discover Knowledge', 'Share Your Research', 'Connect with Academia'];
+    let phraseIndex = 0;
 
     useEffect(() => {
         const fetchTheses = async () => {
             try {
-                const data = await getPublicTheses();
-                setTheses(data || []); // Ensure data is an array or an empty array
+                const response = await axios.get('http://localhost:5000/api/theses');
+                setTheses(response.data);
+                setLoading(false);
             } catch (err) {
-                console.error('Error fetching public theses:', err);
+                console.error('Error fetching theses:', err);
                 setError('Failed to fetch theses. Please try again later.');
-                setTheses([]); // <-- ADDED: Reset theses to an empty array on error
-            } finally {
                 setLoading(false);
             }
         };
 
         fetchTheses();
-    }, []);
 
-    const handleUploadClick = () => {
-        if (isAuthenticated) {
-            navigate('/upload-thesis'); // Navigate to the upload page
-        } else {
-            navigate('/login');
-        }
-    };
+        const intervalId = setInterval(() => {
+            phraseIndex = (phraseIndex + 1) % heroPhrases.length;
+            setHeroText(heroPhrases[phraseIndex]);
+        }, 3000);
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     if (loading) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-                <p className="text-secondary fs-5">Loading public theses...</p>
+                <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-primary" />
             </div>
         );
     }
@@ -56,50 +62,54 @@ const HomePage = () => {
     }
 
     return (
-        <div className="container mt-5">
-            {/* Hero Section */}
-            <div className="card shadow-sm p-4 text-center bg-primary text-white mb-5">
-                <h1 className="display-5 fw-bold mb-3">
-                    Digital Thesis Repository
-                </h1>
-                <p className="lead">
-                    Explore a vast collection of academic theses or submit your own work for review.
+        <>
+            <div className="hero-section text-center py-5">
+                <h1 className="hero-title">Academic Thesis Repository</h1>
+                <p className="hero-subtitle mb-4">
+                    {heroText}
                 </p>
-                <button className="btn btn-outline-light btn-lg mt-3" onClick={handleUploadClick}>
-                    <FontAwesomeIcon icon={faUpload} className="me-2" />
-                    Submit Your Work Here
-                </button>
+                <div className="d-flex justify-content-center">
+                    <Link
+                        to={user ? "/upload-thesis" : "/login"}
+                        className="btn btn-outline-light btn-lg hero-btn shadow-lg"
+                    >
+                        <FontAwesomeIcon icon={faUpload} className="me-2" />
+                        {user ? "Submit Your Work" : "Login to Submit"}
+                    </Link>
+                </div>
             </div>
 
-            {/* Theses List Section */}
-            <div className="card shadow-sm p-4 text-center">
-                <h2 className="h4 text-primary mb-3">
-                    <FontAwesomeIcon icon={faGraduationCap} className="me-3" />
-                    Public Theses
-                </h2>
-                {theses && theses.length > 0 ? ( // <-- UPDATED LOGIC HERE
-                    <div className="list-group">
-                        {theses.map((thesis) => (
-                            <div key={thesis._id} className="list-group-item list-group-item-action mb-2">
-                                <h4 className="h5 fw-bold text-dark">{thesis.title}</h4>
-                                <p className="text-muted mb-1">
-                                    <span className="fw-semibold">Author:</span> {thesis.authorName}
-                                </p>
-                                <p className="text-muted mb-0">
-                                    <span className="fw-semibold">Department:</span> {thesis.department} |
-                                    <span className="fw-semibold ms-2">Year:</span> {thesis.submissionYear}
-                                </p>
-                                <p className="text-secondary mt-2 text-truncate-3">
-                                    {thesis.abstract}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-secondary text-center">No public theses available yet.</p>
-                )}
+            <div className="container my-5">
+                <h2 className="text-center mb-4 text-primary">Recent Submissions</h2>
+                <div className="thesis-list-container">
+                    {theses.length > 0 ? (
+                        theses.map((thesis) => (
+                            <Link to={`/thesis/${thesis._id}`} key={thesis._id} className="thesis-list-item d-block text-decoration-none">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 className="mb-0">{thesis.title}</h5>
+                                    <small className="text-muted">
+                                        <FontAwesomeIcon icon={faCalendar} className="me-1" />
+                                        {thesis.submissionYear}
+                                    </small>
+                                </div>
+                                <small className="text-muted d-block mb-1">
+                                    <FontAwesomeIcon icon={faUser} className="me-1" />
+                                    By: {thesis.authorName}
+                                </small>
+                                <small className="text-muted d-block">
+                                    <FontAwesomeIcon icon={faBuilding} className="me-1" />
+                                    Department: {thesis.department}
+                                </small>
+                            </Link>
+                        ))
+                    ) : (
+                        <div className="text-center text-muted p-5">
+                            <p>No theses have been uploaded yet.</p>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
